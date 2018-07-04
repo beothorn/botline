@@ -1,0 +1,6 @@
+token='TOKEN FROM BOTFATHER'
+allowed_ids=[] #list of allowed user ids
+dbname='telegrambot' 
+user='pi' 
+host='localhost' 
+password='your_db_password'
