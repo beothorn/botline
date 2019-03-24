@@ -1,24 +1,20 @@
 import bot_config
-import psycopg2
+import sqlite3
 
-try:
-    conn = psycopg2.connect("dbname='{0}' user='{1}' host='{2}' password='{3}'".format(
-        bot_config.dbname, bot_config.user, bot_config.host, bot_config.password))
-except:
-    print("No connection to db")
+connection = sqlite3.connect('botbase.db')
 
-cur = conn.cursor()
-cur.execute("""
+cursor = connection.cursor()
+cursor.execute("DROP TABLE IF EXISTS Messages;")
+cursor.execute("DROP TABLE IF EXISTS msg_received;")
 
-DROP TABLE IF EXISTS Messages;
-DROP TABLE IF EXISTS msg_received;
 
+cursor.execute("""
 CREATE TABLE msg_received(
     id                SERIAL       PRIMARY KEY,
     user_id           INT          NOT NULL,
     created_at        TIMESTAMP    NOT NULL,
     message           TEXT
 );
-
 """)
 
+connection.commit()

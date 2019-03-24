@@ -3,18 +3,15 @@ import logging
 import bot_config
 import socket
 import subprocess
-import psycopg2
+import sqlite3
 
 updater = Updater(token=bot_config.token)
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-try:
-        conn = psycopg2.connect("dbname='{0}' user='{1}' host='{2}' password='{3}'".format(bot_config.dbname, bot_config.user, bot_config.host, bot_config.password))
-except:
-        print("I am unable to connect to the database")
 
 def execute(conn, query, values):
+    conn = sqlite3.connect('botbase.db')
     cur = conn.cursor()
     query_log = "QUERY => "+query
     logger.info(query_log % values)
