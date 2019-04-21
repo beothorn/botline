@@ -1,22 +1,35 @@
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters)
 import logging
 import bot_config
+import persistence
 import socket
 import subprocess
 import sqlite3
+import os
+import sys
 
-updater = Updater(token=bot_config.token)
+if len(sys.argv) < 2:
+    print 'Usage: python run_bot.py TOKEN'
+    exit()
+
+token = sys.argv[1]
+
+db_file = 'botbase.db'
+
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
 
+exists = os.path.isfile(db_file)
+if not exists:
+    logging.info('Will create db file')
+    persistence.create_db(db_file)
+    logging.info('Created db file')
 
-def execute(conn, query, values):
-    conn = sqlite3.connect('botbase.db')
-    cur = conn.cursor()
-    query_log = "QUERY => "+query
-    logger.info(query_log % values)
-    cur.execute(query, values)
-    conn.commit()
+allowed_ids = persistence.get_allowed_ids(db_file)
+
+waiting_for_first_connection = len(allowed_ids) == 0
+
+updater = Updater(token)
 
 def is_not_allowed(user_id):
     return user_id not in bot_config.allowed_ids
@@ -39,8 +52,13 @@ def chat(bot, update):
     user = update.message.from_user
     user_id = user.id
     message = update.message.text
-    execute(conn, """INSERT INTO msg_received (user_id, message, created_at) VALUES (%s, %s, current_date)""", (user_id, message))
+    persistence.record_msg(db_file, user_id, message)
 
+    if waiting_for_first_connection :
+        persistence.add_allowed_id(db_file, user_id)
+        allowed_ids = persistence.get_allowed_ids(db_file)
+        bot.send_message(chat_id=update.message.chat_id, text="You are now admin :)")
+        return
     if is_not_allowed(user_id):
         return
     commands = message.split(' ')

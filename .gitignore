@@ -1,5 +1,5 @@
 bot_config.py
-
+botbase.db
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
