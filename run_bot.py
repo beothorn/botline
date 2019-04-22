@@ -10,7 +10,7 @@ import sys
 import requests
 
 if len(sys.argv) < 2:
-    print 'Usage: python run_bot.py TOKEN'
+    print('Usage: python run_bot.py TOKEN')
     exit()
 
 token = sys.argv[1]
