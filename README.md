@@ -11,6 +11,7 @@ Install the dependencies:
 ```
 pip3 install python-telegram-bot --upgrade
 pip3 install requests
+pip3 install Flask
 ```
 
 Create a bot using the botfather https://core.telegram.org/bots#3-how-do-i-create-a-bot
@@ -53,3 +54,10 @@ example: img /home/user/image.png
 ## get url 
 
 example: get https://icanhazip.com/
+
+# Url requests
+
+To send a message to all admins call
+```
+http://localhost:5000/token/message
+```

@@ -8,6 +8,8 @@ import sqlite3
 import os
 import sys
 import requests
+from flask import Flask
+app = Flask(__name__)
 
 if len(sys.argv) < 2:
     print('Usage: python run_bot.py TOKEN')
@@ -136,4 +138,12 @@ bot = updater.bot
 for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
     bot.send_message(chat, text="Bot started")
 
-updater.idle()
+@app.route('/<tokenparam>/<msg>')
+def hello_name(tokenparam, msg):
+    if tokenparam == token:
+        for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
+            bot.send_message(chat, text=msg)
+    return "Sent {}".format(msg)
+
+app.run()
+#updater.idle()
