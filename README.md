@@ -26,6 +26,10 @@ Send a message to the bot to get admin rights, all other users are ignored.
 
 # Commands
 
+## /help
+
+Prints this readme.
+
 ## /ip
 
 Gets the local ip.

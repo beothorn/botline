@@ -1,4 +1,5 @@
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters)
+import telegram
 import logging
 import bot_config
 import persistence
@@ -67,6 +68,16 @@ def command_ip(bot, update):
     message = "Ip is {0}".format(s.getsockname()[0])
     s.close()
     bot.send_message(chat_id=update.message.chat_id, text=message)
+
+def help_bot(bot, update):
+    user = update.message.from_user
+    user_id = user.id
+    chat_id = update.message.chat_id
+    if is_not_allowed(user_id):
+        logging.info("Refused /start: '%s'" % (user_id))
+        return
+    with open('./README.md', 'r') as file:
+        bot.send_message(chat_id=chat_id, text=file.read(), parse_mode=telegram.ParseMode.MARKDOWN)
 
 def on_text(bot, update):
     user = update.message.from_user
@@ -139,6 +150,7 @@ dispatcher = updater.dispatcher
 dispatcher.add_handler(CommandHandler('logo', logo))
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(CommandHandler('ip', command_ip))
+dispatcher.add_handler(CommandHandler('help', help_bot))
 dispatcher.add_handler(MessageHandler(Filters.text, on_text))
 dispatcher.add_handler(MessageHandler(Filters.contact, on_contact))
 
@@ -149,9 +161,9 @@ updater.start_polling()
 
 bot = updater.bot
 
-for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
-    if chat != 0:
-        bot.send_message(chat, text="Bot started")
+#for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
+#    if chat != 0:
+#        bot.send_message(chat, text="Bot started")
 
 @app.route('/<tokenparam>/<msg>')
 def hello_name(tokenparam, msg):
