@@ -32,7 +32,7 @@ waiting_for_first_connection = len(allowed_ids) == 0
 updater = Updater(token)
 
 def is_not_allowed(user_id):
-    return user_id not in bot_config.allowed_ids
+    return user_id not in allowed_ids
 
 def start(bot, update):
     bot.send_message(chat_id=update.message.chat_id, text="I'm a bot, please talk to me!")
