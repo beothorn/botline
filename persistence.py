@@ -20,6 +20,7 @@ def create_db(db_file):
     CREATE TABLE msg_received(
         id                SERIAL       PRIMARY KEY,
         user_id           INT          NOT NULL,
+        chat_id           INT          NOT NULL,
         created_at        TIMESTAMP    NOT NULL,
         message           TEXT
     );
@@ -27,18 +28,23 @@ def create_db(db_file):
     cursor.execute("""
     CREATE TABLE allowed_ids(
         id                SERIAL       PRIMARY KEY,
-        user_id           INT          NOT NULL
+        user_id           INT          NOT NULL,
+        chat_id           INT          NOT NULL
     );
     """)
     connection.commit()
 
-def record_msg(db_file, user_id, message):
-    execute(db_file, """INSERT INTO msg_received (user_id, message, created_at) VALUES (?, ?, CURRENT_TIMESTAMP)""", (user_id, message))
+def record_msg(db_file, user_id, chat_id, message):
+    execute(db_file, """INSERT INTO msg_received (user_id, chat_id, message, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)""", (user_id, chat_id, message))
 
 def get_allowed_ids(db_file):
     connection = sqlite3.connect(db_file)
     return connection.execute('SELECT user_id FROM allowed_ids').fetchall()
 
-def add_allowed_id(db_file, user_id):
-    execute(db_file, """INSERT INTO allowed_ids (user_id) VALUES (?)""", (user_id,))
+def get_admin_chat_ids(db_file):
+    connection = sqlite3.connect(db_file)
+    return connection.execute('SELECT chat_id FROM allowed_ids').fetchall()
+
+def add_allowed_id(db_file, user_id, chat_id):
+    execute(db_file, """INSERT INTO allowed_ids (user_id, chat_id) VALUES (?, ?)""", (user_id, chat_id))
 

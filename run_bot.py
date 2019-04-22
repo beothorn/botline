@@ -34,7 +34,7 @@ updater = Updater(token)
 
 def is_not_allowed(user_id):
     logging.info("Allowed ids: %s" % str(allowed_ids))
-    return user_id not in allowed_ids[0]
+    return user_id not in map(lambda x: x[0], allowed_ids) 
 
 def start(bot, update):
     user = update.message.from_user
@@ -70,14 +70,15 @@ def chat(bot, update):
     user = update.message.from_user
     user_id = user.id
     message = update.message.text
+    chat_id = update.message.chat_id
     global allowed_ids
     global waiting_for_first_connection
-    persistence.record_msg(db_file, user_id, message)
+    persistence.record_msg(db_file, user_id, chat_id, message)
     if waiting_for_first_connection :
-        persistence.add_allowed_id(db_file, user_id)
+        persistence.add_allowed_id(db_file, user_id, chat_id)
         allowed_ids = persistence.get_allowed_ids(db_file)
         waiting_for_first_connection = False
-        bot.send_message(chat_id=update.message.chat_id, text="You are now admin :)")
+        bot.send_message(chat_id, text="You are now admin :)")
         logging.info("Added new admin (%s): '%s'" % (user_id, message))
         return
 
@@ -89,7 +90,7 @@ def chat(bot, update):
     commands = message.split(' ')
     if len(commands) < 2:
         logging.info("Bad command (%s): '%s'" % (user_id, message))
-        bot.send_message(chat_id=update.message.chat_id, text="bad command")
+        bot.send_message(chat_id, text="bad command")
         return
 
     command = commands[0]
@@ -98,7 +99,7 @@ def chat(bot, update):
     if command.lower() == 'img':
         logging.info("Command Img (%s): '%s'" % (user_id, message))
         with open(command_args[0], 'rb') as file:
-            bot.send_photo(chat_id=update.message.chat_id,photo=file)
+            bot.send_photo(chat_id,photo=file)
         return
 
     if command.lower() == 'exec':
@@ -111,12 +112,12 @@ def chat(bot, update):
     if command.lower() == 'get':
         logging.info("Command Get (%s): '%s'" % (user_id, message))
         result = requests.get(command_args[0]) 
-        bot.send_message(chat_id=update.message.chat_id, text=result.text)
+        bot.send_message(chat_id, text=result.text)
         return
 
     logging.info("Received: '%s'" % message)
     message="Commands: Img, Exec"
-    bot.send_message(chat_id=update.message.chat_id, text=message)
+    bot.send_message(chat_id, text=message)
 
 dispatcher = updater.dispatcher
 
@@ -129,4 +130,10 @@ logging.info("Allowed ids: %s" % str(allowed_ids))
 
 logging.info("Starting bot")
 updater.start_polling()
+
+bot = updater.bot
+
+for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
+    bot.send_message(chat, text="Bot started")
+
 updater.idle()
