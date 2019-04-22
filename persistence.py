@@ -48,3 +48,5 @@ def get_admin_chat_ids(db_file):
 def add_allowed_id(db_file, user_id, chat_id):
     execute(db_file, """INSERT INTO allowed_ids (user_id, chat_id) VALUES (?, ?)""", (user_id, chat_id))
 
+def update_chat_id(db_file, user_id, chat_id):
+    execute(db_file, """UPDATE allowed_ids SET chat_id = ? WHERE user_id = ?""", (chat_id, user_id))

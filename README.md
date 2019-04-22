@@ -61,3 +61,7 @@ To send a message to all admins call
 ```
 http://localhost:5000/token/message
 ```
+
+# Add more Admins
+
+Every contact sent by an admin also becomes an admin

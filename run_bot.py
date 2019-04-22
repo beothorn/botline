@@ -68,7 +68,7 @@ def command_ip(bot, update):
     s.close()
     bot.send_message(chat_id=update.message.chat_id, text=message)
 
-def chat(bot, update):
+def on_text(bot, update):
     user = update.message.from_user
     user_id = user.id
     message = update.message.text
@@ -88,6 +88,8 @@ def chat(bot, update):
         logging.info("Refused (%s): '%s'" % (user_id, message))
         logging.info("Allowed ids: %s" % str(allowed_ids))
         return
+
+    persistence.update_chat_id(db_file, user_id, chat_id)
 
     commands = message.split(' ')
     if len(commands) < 2:
@@ -121,12 +123,24 @@ def chat(bot, update):
     message="Commands: Img, Exec"
     bot.send_message(chat_id, text=message)
 
+def on_contact(bot, update):
+    user = update.message.from_user
+    user_id = user.id
+    contact_id = update.message.contact.user_id
+    chat_id = update.message.chat_id
+    global allowed_ids
+    logging.info("Received Contact (%s): '%s'" % (user_id, contact_id))
+    persistence.add_allowed_id(db_file, contact_id, 0)
+    allowed_ids = persistence.get_allowed_ids(db_file)
+    return
+
 dispatcher = updater.dispatcher
 
 dispatcher.add_handler(CommandHandler('logo', logo))
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(CommandHandler('ip', command_ip))
-dispatcher.add_handler(MessageHandler(Filters.text, chat))
+dispatcher.add_handler(MessageHandler(Filters.text, on_text))
+dispatcher.add_handler(MessageHandler(Filters.contact, on_contact))
 
 logging.info("Allowed ids: %s" % str(allowed_ids))
 
@@ -136,7 +150,8 @@ updater.start_polling()
 bot = updater.bot
 
 for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
-    bot.send_message(chat, text="Bot started")
+    if chat != 0:
+        bot.send_message(chat, text="Bot started")
 
 @app.route('/<tokenparam>/<msg>')
 def hello_name(tokenparam, msg):
