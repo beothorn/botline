@@ -42,12 +42,17 @@ Sends an image (for testing purposes)
 
 Sends a welcome text (for testing purposes)
 
-
 ## exec shell_command
 
 Executes a shell command. 
 
 example: exec ls
+
+## execa shell_command
+
+Executes a shell command async. 
+
+example: exec wget http://www.example.com/foo.zip
 
 ## img image_path
 
@@ -63,7 +68,7 @@ example: get https://icanhazip.com/
 
 To send a message to all admins call
 ```
-http://localhost:5000/token/message
+http://localhost:5000/broadcast?token=TOKENHERE&msg=THEMESSAGE
 ```
 
 # Add more Admins

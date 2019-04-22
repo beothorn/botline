@@ -9,7 +9,7 @@ import sqlite3
 import os
 import sys
 import requests
-from flask import Flask
+from flask import Flask, request
 app = Flask(__name__)
 
 if len(sys.argv) < 2:
@@ -124,6 +124,12 @@ def on_text(bot, update):
         bot.send_message(chat_id=update.message.chat_id, text=output)
         return
 
+    if command.lower() == 'execa':
+        logging.info("Command Exec (%s): '%s'" % (user_id, message))
+        subprocess.Popen(command_args)
+        bot.send_message(chat_id=update.message.chat_id, text="Running command")
+        return
+
     if command.lower() == 'get':
         logging.info("Command Get (%s): '%s'" % (user_id, message))
         result = requests.get(command_args[0]) 
@@ -165,8 +171,11 @@ for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
     if chat != 0:
         bot.send_message(chat, text="Bot started")
 
-@app.route('/<tokenparam>/<msg>')
-def hello_name(tokenparam, msg):
+@app.route('/broadcast')
+def broadcast():
+    tokenparam = request.args.get('token')
+    msg = request.args.get('msg')
+
     if tokenparam == token:
         for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
             bot.send_message(chat, text=msg)
