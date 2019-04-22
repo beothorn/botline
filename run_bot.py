@@ -161,9 +161,9 @@ updater.start_polling()
 
 bot = updater.bot
 
-#for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
-#    if chat != 0:
-#        bot.send_message(chat, text="Bot started")
+for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
+    if chat != 0:
+        bot.send_message(chat, text="Bot started")
 
 @app.route('/<tokenparam>/<msg>')
 def hello_name(tokenparam, msg):
