@@ -138,6 +138,16 @@ def on_text(bot, update):
         bot.send_message(chat_id, text=result.text)
         return
 
+    if command.lower() == 'getdoc':
+        logging.info("Command Get Doc (%s): '%s'" % (user_id, message))
+        bot.send_message(chat_id, text="Not implemented yet")
+        return
+
+    if command.lower() == 'getf':
+        logging.info("Command Get File (%s): '%s'" % (user_id, message))
+        bot.send_message(chat_id, text="Not implemented yet")
+        return
+
     logging.info("Received: '%s'" % message)
     message="Commands: Img, Exec"
     bot.send_message(chat_id, text=message)
@@ -148,10 +158,25 @@ def on_contact(bot, update):
     contact_id = update.message.contact.user_id
     chat_id = update.message.chat_id
     global allowed_ids
+    if is_not_allowed(user_id):
+        logging.info("Refused contact: '%s'" % (user_id))
+        return
     logging.info("Received Contact (%s): '%s'" % (user_id, contact_id))
     persistence.add_allowed_id(db_file, contact_id, 0)
     allowed_ids = persistence.get_allowed_ids(db_file)
-    return
+
+def on_document(bot, update):
+    user = update.message.from_user
+    user_id = user.id
+    chat_id = update.message.chat_id
+    doc_name = update.message.document.file_name
+    logging.info("Received Document (%s): '%s'" % (user_id, doc_name))
+    persistence.record_doc(db_file, user_id, chat_id, doc_name)
+    if is_not_allowed(user_id):
+        logging.info("Refused document: '%s'" % (user_id))
+        return
+    update.message.document.get_file().download("./documents/%s" % doc_name)
+
 
 dispatcher = updater.dispatcher
 
@@ -161,6 +186,7 @@ dispatcher.add_handler(CommandHandler('ip', command_ip))
 dispatcher.add_handler(CommandHandler('help', help_bot))
 dispatcher.add_handler(MessageHandler(Filters.text, on_text))
 dispatcher.add_handler(MessageHandler(Filters.contact, on_contact))
+dispatcher.add_handler(MessageHandler(Filters.document, on_document))
 
 logging.info("Allowed ids: %s" % str(allowed_ids))
 

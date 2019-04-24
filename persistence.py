@@ -33,6 +33,15 @@ def create_db(db_file):
     );
     """)
     cursor.execute("""
+    CREATE TABLE doc_received(
+        id                SERIAL       PRIMARY KEY,
+        user_id           INT          NOT NULL,
+        chat_id           INT          NOT NULL,
+        created_at        TIMESTAMP    NOT NULL,
+        file_name         TEXT
+    );
+    """)
+    cursor.execute("""
     CREATE TABLE allowed_ids(
         id                SERIAL       PRIMARY KEY,
         user_id           INT          NOT NULL,
@@ -43,6 +52,9 @@ def create_db(db_file):
 
 def record_msg(db_file, user_id, chat_id, message):
     execute(db_file, """INSERT INTO msg_received (user_id, chat_id, message, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)""", (user_id, chat_id, message))
+
+def record_doc(db_file, user_id, chat_id, file_name):
+    execute(db_file, """INSERT INTO doc_received (user_id, chat_id, file_name, created_at) VALUES (?, ?, ?, CURRENT_TIMESTAMP)""", (user_id, chat_id, file_name))
 
 def get_allowed_ids(db_file):
     connection = sqlite3.connect(db_file)

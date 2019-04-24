@@ -64,6 +64,18 @@ example: img /home/user/image.png
 
 example: get https://icanhazip.com/
 
+## getdoc
+
+Gets a file from the documents folder
+
+example: getdoc foo.txt
+
+## getf
+
+Gets a file from a path
+
+getf /home/user/foo.txt
+
 # Url requests
 
 To send a message to all admins call
@@ -74,3 +86,7 @@ http://localhost:5000/broadcast?token=TOKENHERE&msg=THEMESSAGE
 # Add more Admins
 
 Every contact sent by an admin also becomes an admin
+
+# Send and Receive files
+
+Every file is saved on the documents folder. To get the file use command getdoc
