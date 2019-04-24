@@ -140,12 +140,14 @@ def on_text(bot, update):
 
     if command.lower() == 'getdoc':
         logging.info("Command Get Doc (%s): '%s'" % (user_id, message))
-        bot.send_message(chat_id, text="Not implemented yet")
+        doc = command_args[0]
+        bot.send_document(chat_id=chat_id, document=open(("./documents/%s" % doc ), 'rb'))
         return
 
     if command.lower() == 'getf':
         logging.info("Command Get File (%s): '%s'" % (user_id, message))
-        bot.send_message(chat_id, text="Not implemented yet")
+        doc = command_args[0]
+        bot.send_document(chat_id=chat_id, document=open(doc, 'rb'))
         return
 
     logging.info("Received: '%s'" % message)
