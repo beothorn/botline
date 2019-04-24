@@ -14,7 +14,7 @@ pip3 install requests
 pip3 install Flask
 ```
 
-Create a bot using the botfather https://core.telegram.org/bots#3-how-do-i-create-a-bot
+Create a bot using the [botfather](https://core.telegram.org/bots#3-how-do-i-create-a-bot)
 
 Run using the TOKEN:
 
@@ -46,35 +46,55 @@ Sends a welcome text (for testing purposes)
 
 Executes a shell command. 
 
-example: exec ls
+example: 
+```
+exec ls
+```
 
 ## execa shell_command
 
 Executes a shell command async. 
 
-example: exec wget http://www.example.com/foo.zip
+example: 
+```
+exec wget http://www.example.com/foo.zip
+```
 
 ## img image_path
 
 Sends the image for the given path
 
-example: img /home/user/image.png
+example: 
+
+```
+img /home/user/image.png
+```
 
 ## get url 
 
-example: get https://icanhazip.com/
+Does a get request and prints the returned body.
+
+example: 
+```
+get https://icanhazip.com/
+```
 
 ## getdoc
 
 Gets a file from the documents folder
 
-example: getdoc foo.txt
+example: 
+```
+getdoc foo.txt
+```
 
 ## getf
 
 Gets a file from a path
-
+example:
+```
 getf /home/user/foo.txt
+```
 
 # Url requests
 
