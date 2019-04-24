@@ -81,6 +81,9 @@ def help_bot(bot, update):
     with open('./README.md', 'r') as file:
         bot.send_message(chat_id=chat_id, text=file.read(), parse_mode=telegram.ParseMode.MARKDOWN)
 
+def whoami(bot, update):
+    bot.send_message(chat_id=update.message.chat_id, text=update.message.from_user.id)
+
 def on_text(bot, update):
     user = update.message.from_user
     user_id = user.id
@@ -107,11 +110,12 @@ def on_text(bot, update):
     commands = message.split(' ')
     if len(commands) < 2:
         logging.info("Bad command (%s): '%s'" % (user_id, message))
-        bot.send_message(chat_id, text="bad command")
+        bot.send_message(chat_id, text="Bad command, see /help on usage")
         return
 
     command = commands[0]
     command_args = commands[1:]
+    command_args_string = " ".join(command_args)
 
     if command.lower() == 'img':
         logging.info("Command Img (%s): '%s'" % (user_id, message))
@@ -140,20 +144,20 @@ def on_text(bot, update):
 
     if command.lower() == 'getdoc':
         logging.info("Command Get Doc (%s): '%s'" % (user_id, message))
-        doc = command_args[0]
+        doc = command_args_string
         bot.send_document(chat_id=chat_id, document=open(("./documents/%s" % doc ), 'rb'))
         return
 
     if command.lower() == 'getf':
         logging.info("Command Get File (%s): '%s'" % (user_id, message))
-        doc = command_args[0]
+        doc = command_args_string
         bot.send_document(chat_id=chat_id, document=open(doc, 'rb'))
         return
 
     if command.lower() == 'broadcast':
         logging.info("Command Broadcast (%s): '%s'" % (user_id, message))
         bot = updater.bot
-        msg_broadcast = " ".join(command_args)
+        msg_broadcast = ("%s %s: %s" % (user_id, user.first_name, command_args_string))
         for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
             if chat != 0:
                 bot.send_message(chat, text=msg_broadcast)
@@ -198,6 +202,7 @@ dispatcher.add_handler(CommandHandler('logo', logo))
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(CommandHandler('ip', command_ip))
 dispatcher.add_handler(CommandHandler('help', help_bot))
+dispatcher.add_handler(CommandHandler('whoami', whoami))
 dispatcher.add_handler(MessageHandler(Filters.text, on_text))
 dispatcher.add_handler(MessageHandler(Filters.contact, on_contact))
 dispatcher.add_handler(MessageHandler(Filters.document, on_document))
