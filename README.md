@@ -42,7 +42,7 @@ Sends an image (for testing purposes)
 
 Sends a welcome text (for testing purposes)
 
-## exec shell_command
+## exec shell command
 
 Executes a shell command. 
 
@@ -51,7 +51,7 @@ example:
 exec ls
 ```
 
-## execa shell_command
+## execa shell command
 
 Executes a shell command async. 
 
@@ -60,7 +60,7 @@ example:
 exec wget http://www.example.com/foo.zip
 ```
 
-## img image_path
+## img image path
 
 Sends the image for the given path
 
