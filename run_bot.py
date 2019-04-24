@@ -210,7 +210,8 @@ def broadcast():
 
     if tokenparam == token:
         for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
-            bot.send_message(chat, text=msg)
+            if chat != 0:
+                bot.send_message(chat, text=msg)
     return "Sent {}".format(msg)
 
 app.run()
