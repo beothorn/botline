@@ -1,4 +1,3 @@
-import bot_config
 import sqlite3
 import logging
 
@@ -16,6 +15,14 @@ def execute(db_file, query, values):
 def create_db(db_file):
     connection = sqlite3.connect(db_file)
     cursor = connection.cursor()
+    cursor.execute("""
+    CREATE TABLE bot_info(
+        id                SERIAL       PRIMARY KEY,
+        handle            TEXT         NOT NULL,
+        token             TEXT         NOT NULL,
+        started_at        TIMESTAMP    NOT NULL
+    );
+    """)
     cursor.execute("""
     CREATE TABLE msg_received(
         id                SERIAL       PRIMARY KEY,
@@ -50,3 +57,12 @@ def add_allowed_id(db_file, user_id, chat_id):
 
 def update_chat_id(db_file, user_id, chat_id):
     execute(db_file, """UPDATE allowed_ids SET chat_id = ? WHERE user_id = ?""", (chat_id, user_id))
+
+def add_bot(db_file, token, handle):
+    execute(db_file, """INSERT INTO bot_info (handle, token, started_at) VALUES (?, ?, CURRENT_TIMESTAMP)""", (handle, token))
+
+def update_token(db_file, newtoken, handle):
+    return
+
+def get_bots(db_file):
+    return

@@ -1,7 +1,6 @@
 from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters)
 import telegram
 import logging
-import bot_config
 import persistence
 import socket
 import subprocess
@@ -12,11 +11,12 @@ import requests
 from flask import Flask, request
 app = Flask(__name__)
 
-if len(sys.argv) < 2:
-    print('Usage: python run_bot.py TOKEN')
+if len(sys.argv) < 3:
+    print('Usage: python run_bot.py TOKEN handle')
     exit()
 
 token = sys.argv[1]
+handle = sys.argv[2]
 
 db_file = 'botbase.db'
 
@@ -28,6 +28,8 @@ if not exists:
     logging.info('Will create db file')
     persistence.create_db(db_file)
     logging.info('Created db file')
+
+persistence.add_bot(db_file, token, handle)
 
 allowed_ids = persistence.get_allowed_ids(db_file)
 
