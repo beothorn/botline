@@ -158,6 +158,7 @@ def on_contact(bot, update):
     user = update.message.from_user
     user_id = user.id
     contact_id = update.message.contact.user_id
+    contact_name = update.message.contact.first_name
     chat_id = update.message.chat_id
     global allowed_ids
     if is_not_allowed(user_id):
@@ -166,6 +167,7 @@ def on_contact(bot, update):
     logging.info("Received Contact (%s): '%s'" % (user_id, contact_id))
     persistence.add_allowed_id(db_file, contact_id, 0)
     allowed_ids = persistence.get_allowed_ids(db_file)
+    bot.send_message(chat_id, text=("Now %s is admin" % contact_name))
 
 def on_document(bot, update):
     user = update.message.from_user
