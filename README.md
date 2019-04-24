@@ -19,7 +19,7 @@ Create a bot using the [botfather](https://core.telegram.org/bots#3-how-do-i-cre
 Run using the TOKEN:
 
 ```
-python3 run_bot.py 'TOKEN GOES HERE'
+python3 run_bot.py 'TOKEN GOES HERE' mybot
 ```
 
 Send a message to the bot to get admin rights, all other users are ignored.
