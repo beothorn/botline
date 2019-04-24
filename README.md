@@ -69,10 +69,21 @@ example:
 ```
 img /home/user/image.png
 ```
+## broadcast message
+
+Send a message to all admins
+
+example: 
+
+```
+broadcast this is a test
+```
 
 ## get url 
 
 Does a get request and prints the returned body.
+
+Protocol (http or https) is required
 
 example: 
 ```
@@ -98,7 +109,7 @@ getf /home/user/foo.txt
 
 # Url requests
 
-To send a message to all admins call
+To send a message to all admins call, from the machine running the bot call the url:
 ```
 http://localhost:5000/broadcast?token=TOKENHERE&msg=THEMESSAGE
 ```

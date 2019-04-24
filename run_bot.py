@@ -32,13 +32,13 @@ if not exists:
 persistence.add_bot(db_file, token, handle)
 
 allowed_ids = persistence.get_allowed_ids(db_file)
+logging.info("Allowed ids: %s" % str(allowed_ids))
 
 waiting_for_first_connection = len(allowed_ids) == 0
 
 updater = Updater(token)
 
 def is_not_allowed(user_id):
-    logging.info("Allowed ids: %s" % str(allowed_ids))
     return user_id not in map(lambda x: x[0], allowed_ids) 
 
 def start(bot, update):
@@ -150,8 +150,17 @@ def on_text(bot, update):
         bot.send_document(chat_id=chat_id, document=open(doc, 'rb'))
         return
 
+    if command.lower() == 'broadcast':
+        logging.info("Command Broadcast (%s): '%s'" % (user_id, message))
+        bot = updater.bot
+        msg_broadcast = " ".join(command_args)
+        for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
+            if chat != 0:
+                bot.send_message(chat, text=msg_broadcast)
+        return
+
     logging.info("Received: '%s'" % message)
-    message="Commands: Img, Exec"
+    message="Tipe /help for usage"
     bot.send_message(chat_id, text=message)
 
 def on_contact(bot, update):
@@ -168,6 +177,7 @@ def on_contact(bot, update):
     persistence.add_allowed_id(db_file, contact_id, 0)
     allowed_ids = persistence.get_allowed_ids(db_file)
     bot.send_message(chat_id, text=("Now %s is admin" % contact_name))
+    logging.info("Allowed ids: %s" % str(allowed_ids))
 
 def on_document(bot, update):
     user = update.message.from_user
