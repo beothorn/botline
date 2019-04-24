@@ -4,7 +4,7 @@ This is a telegram bot that can run some commands.
 
 # Setup
 
-This uses python 3.
+This bot needs python 3.6 or higher
 
 Install the dependencies:
 
