@@ -44,49 +44,6 @@ def is_not_allowed(user_id):
 def start(bot, update):
     user = update.message.from_user
     user_id = user.id
-    if is_not_allowed(user_id):
-        logging.info("Refused /start: '%s'" % (user_id))
-        return
-    bot.send_message(chat_id=update.message.chat_id, text="I'm a bot, please talk to me!")
-
-def logo(bot, update):
-    user = update.message.from_user
-    user_id = user.id
-    if is_not_allowed(user_id):
-        logging.info("Refused /logo: '%s'" % (user_id))
-        return
-    with open('./logo.png', 'rb') as file:
-        bot.send_photo(chat_id=update.message.chat_id,photo=file)
-
-def command_ip(bot, update):
-    user = update.message.from_user
-    user_id = user.id
-    if is_not_allowed(user_id):
-        logging.info("Refused /ip: '%s'" % (user_id))
-        logging.info("Allowed ids: %s" % str(allowed_ids))
-        return
-    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-    s.connect(("8.8.8.8", 80))
-    message = "Ip is {0}".format(s.getsockname()[0])
-    s.close()
-    bot.send_message(chat_id=update.message.chat_id, text=message)
-
-def help_bot(bot, update):
-    user = update.message.from_user
-    user_id = user.id
-    chat_id = update.message.chat_id
-    if is_not_allowed(user_id):
-        logging.info("Refused /start: '%s'" % (user_id))
-        return
-    with open('./README.md', 'r') as file:
-        bot.send_message(chat_id=chat_id, text=file.read(), parse_mode=telegram.ParseMode.MARKDOWN)
-
-def whoami(bot, update):
-    bot.send_message(chat_id=update.message.chat_id, text=update.message.from_user.id)
-
-def on_text(bot, update):
-    user = update.message.from_user
-    user_id = user.id
     message = update.message.text
     chat_id = update.message.chat_id
     global allowed_ids
@@ -107,65 +64,76 @@ def on_text(bot, update):
 
     persistence.update_chat_id(db_file, user_id, chat_id)
 
-    commands = message.split(' ')
-    if len(commands) < 2:
-        logging.info("Bad command (%s): '%s'" % (user_id, message))
-        bot.send_message(chat_id, text="Bad command, see /help on usage")
-        return
+def command_ip(bot, update):
+    user = update.message.from_user
+    user_id = user.id
+    s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+    s.connect(("8.8.8.8", 80))
+    message = "Ip is {0}".format(s.getsockname()[0])
+    s.close()
+    bot.send_message(chat_id=update.message.chat_id, text=message)
 
-    command = commands[0]
-    command_args = commands[1:]
-    command_args_string = " ".join(command_args)
+def help_bot(bot, update):
+    user = update.message.from_user
+    user_id = user.id
+    chat_id = update.message.chat_id
+    logging.info("HELP (%s)" % (user_id,))
+    with open('./README.md', 'r') as file:
+        bot.send_message(chat_id=chat_id, text=file.read(), parse_mode=telegram.ParseMode.MARKDOWN)
 
-    if command.lower() == 'img':
-        logging.info("Command Img (%s): '%s'" % (user_id, message))
-        with open(command_args[0], 'rb') as file:
-            bot.send_photo(chat_id,photo=file)
-        return
+def whoami(bot, update):
+    bot.send_message(chat_id=update.message.chat_id, text=update.message.from_user.id)
 
-    if command.lower() == 'exec':
-        logging.info("Command Exec (%s): '%s'" % (user_id, message))
-        result = subprocess.run(command_args, stdout=subprocess.PIPE)
-        output = result.stdout.decode('utf-8')
-        bot.send_message(chat_id=update.message.chat_id, text=output)
-        return
+def chat_id(bot, update):
+    bot.send_message(chat_id=update.message.chat_id, text=update.message.chat_id)
 
-    if command.lower() == 'execa':
-        logging.info("Command Exec (%s): '%s'" % (user_id, message))
-        subprocess.Popen(command_args)
-        bot.send_message(chat_id=update.message.chat_id, text="Running command")
-        return
+def img(bot, update, args):
+    path = ' '.join(args)
+    with open(path, 'rb') as file:
+        bot.send_photo(chat_id,photo=file)
 
-    if command.lower() == 'get':
-        logging.info("Command Get (%s): '%s'" % (user_id, message))
-        result = requests.get(command_args[0]) 
-        bot.send_message(chat_id, text=result.text)
-        return
+def exec_cmd(bot, update, args):
+    #TODO: get error output
+    result = subprocess.run(args, stdout=subprocess.PIPE)
+    output = result.stdout.decode('utf-8')
+    bot.send_message(chat_id=update.message.chat_id, text=output)
 
-    if command.lower() == 'getdoc':
-        logging.info("Command Get Doc (%s): '%s'" % (user_id, message))
-        doc = command_args_string
-        bot.send_document(chat_id=chat_id, document=open(("./documents/%s" % doc ), 'rb'))
-        return
+def exec_cmd_bck(bot, update, args):
+    subprocess.Popen(args)
+    bot.send_message(chat_id=update.message.chat_id, text="Running command")
 
-    if command.lower() == 'getf':
-        logging.info("Command Get File (%s): '%s'" % (user_id, message))
-        doc = command_args_string
-        bot.send_document(chat_id=chat_id, document=open(doc, 'rb'))
-        return
+def get(bot, update, args):
+    result = requests.get(args[0]) 
+    bot.send_message(chat_id=update.message.chat_id, text=result.text)
 
-    if command.lower() == 'broadcast':
-        logging.info("Command Broadcast (%s): '%s'" % (user_id, message))
-        bot = updater.bot
-        msg_broadcast = ("%s %s: %s" % (user_id, user.first_name, command_args_string))
-        for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
-            if chat != 0:
-                bot.send_message(chat, text=msg_broadcast)
-        return
+def down(bot, update, args):
+    path = ' '.join(args) 
+    if path.startswith('/'):
+        bot.send_document(chat_id=chat_id, document=open(path, 'rb'))
+    else:
+        bot.send_document(chat_id=chat_id, document=open(("./documents/%s" % path ), 'rb'))
 
-    logging.info("Received: '%s'" % message)
-    message="Tipe /help for usage"
-    bot.send_message(chat_id, text=message)
+def msg_all(bot, update, args):
+    message = ' '.join(args).upper()
+    user = update.message.from_user
+    user_id = user.id
+    msg_broadcast = ("%s %s: %s" % (user_id, user.first_name, message))
+    for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
+        if chat != 0:
+            bot.send_message(chat, text=msg_broadcast)
+
+def sql_do(bot, update, args):
+    query = ' '.join(args)
+    result = persistence.execute(db_file, query, ())
+    bot.send_message(chat_id=update.message.chat_id, text=str(result))
+
+def on_text(bot, update):
+    user = update.message.from_user
+    user_id = user.id
+    message = update.message.text
+    chat_id = update.message.chat_id
+    logging.info("Received message (%s): '%s'" % (user_id, message))
+    persistence.record_msg(db_file, user_id, chat_id, message)
 
 def on_contact(bot, update):
     user = update.message.from_user
@@ -198,11 +166,66 @@ def on_document(bot, update):
 
 dispatcher = updater.dispatcher
 
-dispatcher.add_handler(CommandHandler('logo', logo))
+cmds = [
+    ('help', 'Display helpfull information on how to setup bot', help_bot),
+    ('ip', 'Gets the machine local ip', command_ip),
+    ('whoami', 'Returns your user id', whoami),
+    ('chatid', 'Return your chat id', chat_id)
+]
+
+cmds_args = [
+    ('img', 'Returns an image. img <path>', img),
+    ('exec', 'Executes a command. exec <command>', exec_cmd),
+    ('execa', 'Executes a command on background. execa <command>', exec_cmd_bck),
+    ('get', 'Makes a get request and returns the result. get <url>', get),
+    ('down', 'Downloads a file from the server. down <file name|file path>', down),
+    ('msg_all', 'Sends a message to all users. msg_all <message>', msg_all),
+#    ('msg_adm', 'Sends a message to all admins. msg_admin <message>', msg_adm),
+    ('sql', 'Runs a sql query on bot sqlite db. sql <sql command>', sql_do)
+]
+
+def closure(alias, callback):
+    def run_cmd_if_allowed(bot, update):
+        if is_not_allowed(update.message.from_user.id):
+            logging.info("Refused %s: '%s'" % (alias, update.message.from_user.id))
+            return
+        logging.info("Received message '%s'" % (alias,))
+        callback(bot, update)
+    return run_cmd_if_allowed
+
+for cmd in cmds:
+    alias = cmd[0]
+    callback = cmd[2]
+    dispatcher.add_handler(CommandHandler(command=alias, callback=closure(alias, callback), pass_args=False))
+
+def closure_args(alias, callback):
+    def run_cmd_if_allowed(bot, update, args):
+        if is_not_allowed(update.message.from_user.id):
+            logging.info("Refused %s: '%s'" % (alias, update.message.from_user.id))
+            return
+        logging.info("Received message '%s' '%s'" % (alias, ' '.join(args)))
+        callback(bot, update, args)
+    return run_cmd_if_allowed
+
+for cmd in cmds_args:
+    alias = cmd[0]
+    callback = cmd[2]
+    dispatcher.add_handler(CommandHandler(command=alias, callback=closure_args(alias, callback), pass_args=True))
+
+all_commands = ""
+
+for cmd in (cmds + cmds_args):
+    all_commands = all_commands + ("%s - %s\n" % (cmd[0], cmd[1]))
+
+def commands(bot, update):
+    if is_not_allowed(update.message.from_user.id):
+        logging.info("Refused commands: '%s'" % (update.message.from_user.id,))
+        return
+    bot.send_message(chat_id=update.message.chat_id, text=all_commands)
+
 dispatcher.add_handler(CommandHandler('start', start))
-dispatcher.add_handler(CommandHandler('ip', command_ip))
-dispatcher.add_handler(CommandHandler('help', help_bot))
-dispatcher.add_handler(CommandHandler('whoami', whoami))
+dispatcher.add_handler(CommandHandler('cmds', commands))
+
 dispatcher.add_handler(MessageHandler(Filters.text, on_text))
 dispatcher.add_handler(MessageHandler(Filters.contact, on_contact))
 dispatcher.add_handler(MessageHandler(Filters.document, on_document))

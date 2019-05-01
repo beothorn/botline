@@ -7,7 +7,7 @@ logger = logging.getLogger(__name__)
 def execute(db_file, query, values):
     conn = sqlite3.connect(db_file)
     cur = conn.cursor()
-    query_log = "QUERY => "+query
+    #query_log = "QUERY => "+query
     #logger.info(query_log % values)
     cur.execute(query, values)
     conn.commit()

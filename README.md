@@ -42,34 +42,34 @@ Sends an image (for testing purposes)
 
 Sends a welcome text (for testing purposes)
 
-## exec shell command
+## /exec shell command
 
 Executes a shell command. 
 
 example: 
 ```
-exec ls
+/exec ls
 ```
 
-## execa shell command
+## /execa shell command
 
 Executes a shell command async. 
 
 example: 
 ```
-exec wget http://www.example.com/foo.zip
+/exec wget http://www.example.com/foo.zip
 ```
 
-## img image path
+## /img image path
 
 Sends the image for the given path
 
 example: 
 
 ```
-img /home/user/image.png
+/img /home/user/image.png
 ```
-## broadcast message
+## /broadcast message
 
 Send a message to all admins
 
@@ -79,7 +79,7 @@ example:
 broadcast this is a test
 ```
 
-## get url 
+## /get url 
 
 Does a get request and prints the returned body.
 
@@ -87,24 +87,16 @@ Protocol (http or https) is required
 
 example: 
 ```
-get https://icanhazip.com/
+/get https://icanhazip.com/
 ```
 
-## getdoc
+## /down
 
-Gets a file from the documents folder
-
-example: 
-```
-getdoc foo.txt
-```
-
-## getf
-
-Gets a file from a path
+Gets a file from a path or from document folder
 example:
 ```
-getf /home/user/foo.txt
+/down /home/user/foo.txt
+/down foo.txt
 ```
 
 # Url requests
