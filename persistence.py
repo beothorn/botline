@@ -12,6 +12,10 @@ def execute(db_file, query, values):
     cur.execute(query, values)
     conn.commit()
 
+def sql_do(db_file, query):
+    connection = sqlite3.connect(db_file)
+    return connection.execute(query).fetchall()
+
 def create_db(db_file):
     connection = sqlite3.connect(db_file)
     cursor = connection.cursor()

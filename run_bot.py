@@ -129,7 +129,7 @@ def msg_all(bot, update, args):
 
 def sql_do(bot, update, args):
     query = ' '.join(args)
-    result = persistence.execute(db_file, query, ())
+    result = persistence.sql_do(db_file, query)
     bot.send_message(chat_id=update.message.chat_id, text=str(result))
 
 def store(bot, update, args):
