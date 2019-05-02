@@ -90,7 +90,11 @@ def chat_id(bot, update):
 def img(bot, update, args):
     path = ' '.join(args)
     with open(path, 'rb') as file:
-        bot.send_photo(chat_id,photo=file)
+        print(file)
+        bot.send_photo(chat_id=update.message.chat_id,photo=file)
+
+def logo(bot, update):
+    bot.send_photo(chat_id=update.message.chat_id, photo=open('./logo.png', 'rb'))
 
 def exec_cmd(bot, update, args):
     #TODO: get error output
@@ -109,9 +113,9 @@ def get(bot, update, args):
 def down(bot, update, args):
     path = ' '.join(args) 
     if path.startswith('/'):
-        bot.send_document(chat_id=chat_id, document=open(path, 'rb'))
+        bot.send_document(chat_id=update.message.chat_id, document=open(path, 'rb'))
     else:
-        bot.send_document(chat_id=chat_id, document=open(("./documents/%s" % path ), 'rb'))
+        bot.send_document(chat_id=update.message.chat_id, document=open(("./documents/%s" % path ), 'rb'))
 
 def msg_all(bot, update, args):
     message = ' '.join(args).upper()
@@ -169,6 +173,7 @@ dispatcher = updater.dispatcher
 cmds = [
     ('help', 'Display helpfull information on how to setup bot', help_bot),
     ('ip', 'Gets the machine local ip', command_ip),
+    ('logo', 'Returns a logo (testing purpose)', logo),
     ('whoami', 'Returns your user id', whoami),
     ('chatid', 'Return your chat id', chat_id)
 ]
