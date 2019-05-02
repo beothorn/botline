@@ -46,9 +46,11 @@ def start(bot, update):
     user_id = user.id
     message = update.message.text
     chat_id = update.message.chat_id
+    full_name = user.full_name
+    username = user.username
     global allowed_ids
     global waiting_for_first_connection
-    persistence.record_msg(db_file, user_id, chat_id, message)
+    persistence.record_msg(db_file, user_id, chat_id, full_name, username, message)
     if waiting_for_first_connection :
         persistence.add_allowed_id(db_file, user_id, chat_id)
         allowed_ids = persistence.get_allowed_ids(db_file)
@@ -90,7 +92,6 @@ def chat_id(bot, update):
 def img(bot, update, args):
     path = ' '.join(args)
     with open(path, 'rb') as file:
-        print(file)
         bot.send_photo(chat_id=update.message.chat_id,photo=file)
 
 def logo(bot, update):
@@ -131,13 +132,26 @@ def sql_do(bot, update, args):
     result = persistence.execute(db_file, query, ())
     bot.send_message(chat_id=update.message.chat_id, text=str(result))
 
+def store(bot, update, args):
+    key = args[0]
+    value = ' '.join(args[1:])
+    persistence.store(db_file, key, value)
+    bot.send_message(chat_id=update.message.chat_id, text=("Stored value on key %s" % (key,)) )
+
+def get_value(bot, update, args):
+    key = args[0]
+    value = persistence.get_value(db_file, key)
+    bot.send_message(chat_id=update.message.chat_id, text=value[0][0])
+
 def on_text(bot, update):
     user = update.message.from_user
     user_id = user.id
+    full_name = user.full_name
+    username = user.username
     message = update.message.text
     chat_id = update.message.chat_id
     logging.info("Received message (%s): '%s'" % (user_id, message))
-    persistence.record_msg(db_file, user_id, chat_id, message)
+    persistence.record_msg(db_file, user_id, chat_id, full_name, username, message)
 
 def on_contact(bot, update):
     user = update.message.from_user
@@ -158,10 +172,12 @@ def on_contact(bot, update):
 def on_document(bot, update):
     user = update.message.from_user
     user_id = user.id
+    full_name = user.full_name
+    username = user.username
     chat_id = update.message.chat_id
     doc_name = update.message.document.file_name
     logging.info("Received Document (%s): '%s'" % (user_id, doc_name))
-    persistence.record_doc(db_file, user_id, chat_id, doc_name)
+    persistence.record_doc(db_file, user_id, chat_id, full_name, username, doc_name)
     if is_not_allowed(user_id):
         logging.info("Refused document: '%s'" % (user_id))
         return
@@ -186,7 +202,9 @@ cmds_args = [
     ('down', 'Downloads a file from the server. down <file name|file path>', down),
     ('msg_all', 'Sends a message to all users. msg_all <message>', msg_all),
 #    ('msg_adm', 'Sends a message to all admins. msg_admin <message>', msg_adm),
-    ('sql', 'Runs a sql query on bot sqlite db. sql <sql command>', sql_do)
+    ('sql', 'Runs a sql query on bot sqlite db. sql <sql command>', sql_do),
+    ('store', 'Stores a value on a map. store <key> <value>', store),
+    ('value', 'Gets a value from the map. value <key>', get_value),
 ]
 
 def closure(alias, callback):

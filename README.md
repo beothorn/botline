@@ -30,6 +30,10 @@ Send a message to the bot to get admin rights, all other users are ignored.
 
 Prints this readme.
 
+## /cmds
+
+Prints all commands in the format required by botfather for autocomplete.
+
 ## /ip
 
 Gets the local ip.
@@ -98,7 +102,15 @@ example:
 /down /home/user/foo.txt
 /down foo.txt
 ```
+## /store key value and /value key 
 
+Stores and recovers values from a map.
+
+example: 
+```
+/store foo hello world
+/value foo
+```
 # Url requests
 
 To send a message to all admins call, from the machine running the bot call the url:
