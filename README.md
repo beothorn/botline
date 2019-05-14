@@ -9,6 +9,7 @@ This bot needs python 3.6 or higher
 Install the dependencies:
 
 ```
+sudo apt install python3-pip
 pip3 install python-telegram-bot --upgrade
 pip3 install requests
 pip3 install Flask
