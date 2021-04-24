@@ -39,7 +39,7 @@ Prints all commands in the format required by botfather for autocomplete.
 
 Gets the local ip.
 
-## /ip
+## /webip
 
 Gets the external ip.
 
@@ -86,7 +86,7 @@ example:
 ```
 /img /home/user/image.png
 ```
-## /broadcast message
+## /msg_all message
 
 Send a message to all admins
 
@@ -94,6 +94,15 @@ example:
 
 ```
 broadcast this is a test
+```
+## /sql query
+
+Runs a sql query on bot sqlite db.
+
+example: 
+
+```
+sql SELECT * FROM msg_received
 ```
 
 ## /get url 
