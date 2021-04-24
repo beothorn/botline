@@ -23,7 +23,7 @@ Run using the TOKEN:
 python3 run_bot.py 'TOKEN GOES HERE' mybot
 ```
 
-Send a message to the bot to get admin rights, all other users are ignored.
+Then send a command /start to the bot to get admin rights, all other users are ignored.
 
 # Commands
 
@@ -39,13 +39,25 @@ Prints all commands in the format required by botfather for autocomplete.
 
 Gets the local ip.
 
+## /ip
+
+Gets the external ip.
+
 ## /logo
 
-Sends an image (for testing purposes)
+Sends back an image (for testing purposes)
 
 ## /start
 
 Sends a welcome text (for testing purposes)
+
+## /whoami
+
+Returns your user id
+
+## /chatid
+
+Returns your chat id
 
 ## /exec shell command
 
@@ -67,7 +79,7 @@ example:
 
 ## /img image path
 
-Sends the image for the given path
+Sends back the image on path
 
 example: 
 
@@ -103,7 +115,7 @@ example:
 /down /home/user/foo.txt
 /down foo.txt
 ```
-## /store key value and /value key 
+## "/store key value" and "/value key" 
 
 Stores and recovers values from a map.
 
