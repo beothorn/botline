@@ -13,6 +13,11 @@ sudo apt install python3-pip
 pip3 install python-telegram-bot --upgrade
 pip3 install requests
 pip3 install Flask
+
+# Optional
+
+sudo apt-get install libcups2-dev
+pip3 install pycups
 ```
 
 Create a bot using the [botfather](https://core.telegram.org/bots#3-how-do-i-create-a-bot)
@@ -58,6 +63,10 @@ Returns your user id
 ## /chatid
 
 Returns your chat id
+
+## /print
+
+Prints the last document sent.
 
 ## /exec shell command
 

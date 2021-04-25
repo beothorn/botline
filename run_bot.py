@@ -1,4 +1,5 @@
-from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters)
+from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup
+from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler)
 import telegram
 import logging
 import persistence
@@ -92,7 +93,7 @@ def help_bot(update, context):
         context.bot.send_message(chat_id=message_chat_id, text=file.read(), parse_mode=telegram.ParseMode.MARKDOWN)
 
 
-def whoami(update, context):
+def who_am_i(update, context):
     context.bot.send_message(chat_id=update.message.chat_id, text=update.message.from_user.id)
 
 
@@ -177,6 +178,17 @@ def get_all_values(update, context):
             all_values += f' {v[0]}: {v[1]}'
         context.bot.send_message(chat_id=update.message.chat_id, text=all_values)
 
+last_document = None
+
+
+def print():
+    import cups
+    conn = cups.Connection()
+    printers = conn.getPrinters()
+    printer_name = printers.keys()[0]
+    global last_document
+    conn.printFile(printer_name, last_document, " ", {})
+
 
 def on_text(update, context):
     user = update.message.from_user
@@ -207,6 +219,7 @@ def on_contact(update, context):
 
 
 def on_document(update, context):
+    global last_document
     user = update.message.from_user
     user_id = user.id
     full_name = user.full_name
@@ -219,6 +232,7 @@ def on_document(update, context):
         logging.info("Refused document: '%s'" % user_id)
         return
     update.message.document.get_file().download("./documents/%s" % doc_name)
+    last_document = f'./documents/{doc_name}'
 
 
 dispatcher = updater.dispatcher
@@ -228,7 +242,7 @@ cmds = [
     ('ip', 'Gets the machine local ip', command_ip),
     ('webip', 'Gets the machine external ip', command_web_ip),
     ('logo', 'Returns a logo (testing purpose)', logo),
-    ('whoami', 'Returns your user id', whoami),
+    ('whoami', 'Returns your user id', who_am_i),
     ('chatid', 'Returns your chat id', chat_id),
     ('img', 'Returns an image. img <path>', img),
     ('exec', 'Executes a command. exec <command>', exec_cmd),
@@ -236,6 +250,7 @@ cmds = [
     ('get', 'Makes a get request and returns the result. get <url>', get),
     ('down', 'Downloads a file from the server. down <file name|file path>', down),
     ('broadcast', 'Sends a message to all users. msg_all <message>', msg_all),
+    ('print', 'Prints last sent document', print),
     ('sql', 'Runs a sql query on bot sqlite db. sql <sql command>', sql_do),
     ('store', 'Stores a value on a map. store <key> <value>', store),
     ('value', 'Gets a value from the map. value <key>', get_value),
@@ -295,7 +310,7 @@ updater_bot = updater.bot
 
 for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
     if chat != 0:
-        updater_bot.send_message(chat, text="Bot started")
+        updater_bot.send_message(chat, text=f'Bot {handle} started')
 
 
 @app.route('/broadcast')
