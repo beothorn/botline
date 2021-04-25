@@ -181,7 +181,7 @@ def get_all_values(update, context):
 last_document = None
 
 
-def print():
+def print_last_file(update, context):
     import cups
     conn = cups.Connection()
     printers = conn.getPrinters()
@@ -250,7 +250,7 @@ cmds = [
     ('get', 'Makes a get request and returns the result. get <url>', get),
     ('down', 'Downloads a file from the server. down <file name|file path>', down),
     ('broadcast', 'Sends a message to all users. msg_all <message>', msg_all),
-    ('print', 'Prints last sent document', print),
+    ('print', 'Prints last sent document', print_last_file),
     ('sql', 'Runs a sql query on bot sqlite db. sql <sql command>', sql_do),
     ('store', 'Stores a value on a map. store <key> <value>', store),
     ('value', 'Gets a value from the map. value <key>', get_value),
