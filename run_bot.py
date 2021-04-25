@@ -58,7 +58,7 @@ def start(update, context):
         persistence.add_allowed_id(db_file, user_id, message_chat_id)
         allowed_ids = persistence.get_allowed_ids(db_file)
         waiting_for_first_connection = False
-        context.bot.send_message(message_chat_id, text="You are now admin :)")
+        context.bot.send_message(message_chat_id, text="You are now admin :)\nUse /help to see what you can do")
         logging.info("Added new admin (%s): '%s'" % (user_id, message))
         return
 
@@ -235,7 +235,7 @@ cmds = [
     ('execa', 'Executes a command on background. execa <command>', exec_cmd_bck),
     ('get', 'Makes a get request and returns the result. get <url>', get),
     ('down', 'Downloads a file from the server. down <file name|file path>', down),
-    ('msg_all', 'Sends a message to all users. msg_all <message>', msg_all),
+    ('broadcast', 'Sends a message to all users. msg_all <message>', msg_all),
     ('sql', 'Runs a sql query on bot sqlite db. sql <sql command>', sql_do),
     ('store', 'Stores a value on a map. store <key> <value>', store),
     ('value', 'Gets a value from the map. value <key>', get_value),

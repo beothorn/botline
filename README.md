@@ -86,7 +86,8 @@ example:
 ```
 /img /home/user/image.png
 ```
-## /msg_all message
+
+## /broadcast message
 
 Send a message to all admins
 
@@ -95,6 +96,7 @@ example:
 ```
 broadcast this is a test
 ```
+
 ## /sql query
 
 Runs a sql query on bot sqlite db.
@@ -124,7 +126,7 @@ example:
 /down /home/user/foo.txt
 /down foo.txt
 ```
-## "/store key value" and "/value key" 
+## /store key value and /value key 
 
 Stores and recovers values from a map.
 
