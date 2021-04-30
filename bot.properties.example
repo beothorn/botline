@@ -6,3 +6,4 @@ current_dir=.
 [cmds_config]
 enabled_cmd=explore,help,ip,webip,logo,whoami,chatid,img,exec,execa,get,down,broadcast,print,sql,store,value,values
 broadcast_unkown_messages=false
+buttons_rows_per_page=10

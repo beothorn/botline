@@ -1,6 +1,13 @@
 # Botline
 
-This is a telegram bot that can run some commands.
+This is a telegram bot that can command line commands and some utilities.
+
+Running this on any machine you can also upload and 
+download files with the inline keyboard explorer.
+
+Printing is also available through pycups.
+
+Basic permissions can be configured using the bot.properties file.  
 
 # Setup
 
@@ -41,6 +48,11 @@ Then send a command /start to the bot to get admin rights, all other users are i
 
 Prints this readme.
 
+## /explore
+
+Browses the file system using inline keyboard. It is possible to download files or 
+set the current directory to upload by sending documents.
+
 ## /cmds
 
 Prints all commands in the format required by botfather for autocomplete.
@@ -59,7 +71,7 @@ Sends back an image (for testing purposes)
 
 ## /start
 
-Sends a welcome text (for testing purposes)
+Gets admin rights if no admin is already registered.
 
 ## /whoami
 
@@ -71,7 +83,7 @@ Returns your chat id
 
 ## /print
 
-Prints the last document sent.
+Prints the last document sent to the machine printer using cups.
 
 ## /exec shell command
 

@@ -9,6 +9,9 @@ import os
 import sys
 import requests
 import configparser
+from pathlib import Path
+import re
+
 
 bot_properties_file = 'bot.properties'
 
@@ -22,6 +25,7 @@ if os.path.isfile(bot_properties_file):
     current_dir = config['bot_config']['current_dir']
     enabled_cmd = config['cmds_config']['enabled_cmd']
     broadcast_unkown_messages = config['cmds_config']['broadcast_unkown_messages']
+    buttons_rows_per_page = int(config['cmds_config']['buttons_rows_per_page'])
 else:
     if len(sys.argv) < 3:
         print('Usage: python run_bot.py TOKEN handle')
@@ -31,7 +35,10 @@ else:
     db_file = 'botbase.db'
     current_dir = "."
     enabled_cmd = 'explore,help,ip,webip,logo,whoami,chatid,img,exec,execa,get,down,broadcast,print,sql,store,value,values'
+    buttons_rows_per_page = 10
     logging.info('All commands are enabled, to disable them use a bot.properties file')
+
+current_dir = str(Path(current_dir).absolute())
 
 logging.info(f'Enabled commands {enabled_cmd}')
 allowed = enabled_cmd.split(',')
@@ -195,6 +202,130 @@ def get_all_values(update, context):
         context.bot.send_message(chat_id=update.message.chat_id, text=all_values)
 
 
+def list_directories():
+    return [x.name for x in Path(current_dir).glob('*') if x.is_dir()]
+
+
+def list_files():
+    return [x.name for x in Path(current_dir).glob('*') if x.is_file()]
+
+
+def parent_dir():
+    path = Path(current_dir)
+    return str(path.parent.absolute())
+
+
+def all_dirs_keyboard(page):
+    keyboard = []
+    for d in list_directories():
+        keyboard.append([InlineKeyboardButton(d, callback_data=f"EXPLORE goto_dir {d}")])
+    remove_before = page*buttons_rows_per_page
+    with_previous_removed = keyboard[remove_before:]
+    remaining = len(with_previous_removed)
+    with_remaining_removed = with_previous_removed[:buttons_rows_per_page]
+
+    if page > 0 and remaining <= buttons_rows_per_page:
+        with_remaining_removed.append([InlineKeyboardButton("<<", callback_data=f"EXPLORE list_dir {page - 1}")])
+
+    if page == 0 and remaining > buttons_rows_per_page:
+        with_remaining_removed.append([InlineKeyboardButton(">>", callback_data=f"EXPLORE list_dir {page + 1}")])
+
+    if page > 0 and remaining > buttons_rows_per_page:
+        with_remaining_removed.append([InlineKeyboardButton("<<", callback_data=f"EXPLORE list_dir {page - 1}"),
+                                       InlineKeyboardButton(">>", callback_data=f"EXPLORE list_dir {page + 1}")])
+
+    with_remaining_removed.append([InlineKeyboardButton("..", callback_data="EXPLORE goto_parent_dir")])
+    with_remaining_removed.append([InlineKeyboardButton("Show files", callback_data="EXPLORE show_files")])
+    with_remaining_removed.append([InlineKeyboardButton("Close", callback_data="EXPLORE close")])
+    return with_remaining_removed
+
+
+def all_files_keyboard(page):
+    keyboard = []
+    for f in list_files():
+        keyboard.append([InlineKeyboardButton(f, callback_data=f"EXPLORE download {f}")])
+    remove_before = page*buttons_rows_per_page
+    with_previous_removed = keyboard[remove_before:]
+    remaining = len(with_previous_removed)
+    with_remaining_removed = with_previous_removed[:buttons_rows_per_page]
+
+    if page > 0 and remaining <= buttons_rows_per_page:
+        with_remaining_removed.append([InlineKeyboardButton("<<", callback_data=f"EXPLORE show_files {page - 1}")])
+
+    if page == 0 and remaining > buttons_rows_per_page:
+        with_remaining_removed.append([InlineKeyboardButton(">>", callback_data=f"EXPLORE show_files {page + 1}")])
+
+    if page > 0 and remaining > buttons_rows_per_page:
+        with_remaining_removed.append([InlineKeyboardButton("<<", callback_data=f"EXPLORE show_files {page - 1}"),
+                                       InlineKeyboardButton(">>", callback_data=f"EXPLORE show_files {page + 1}")])
+
+    with_remaining_removed.append([InlineKeyboardButton("Show directory", callback_data="EXPLORE list_dir 0")])
+    with_remaining_removed.append([InlineKeyboardButton("Close", callback_data="EXPLORE close")])
+    return with_remaining_removed
+
+
+def on_explore_callback(update, context) -> None:
+    global current_dir
+    query = update.callback_query
+
+    # CallbackQueries need to be answered, even if no notification to the user is needed
+    # Some clients may have trouble otherwise. See https://core.telegram.org/bots/api#callbackquery
+    query.answer()
+
+    if query.data == "EXPLORE goto_parent_dir":
+        logging.info(f"Explore: leave {current_dir}")
+        current_dir = parent_dir()
+        logging.info(f"Explore: go to {current_dir}")
+        query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_dirs_keyboard(0)))
+        return
+
+    if query.data == "EXPLORE show_files":
+        logging.info(f"Explore: show files for {current_dir}")
+        query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_files_keyboard(0)))
+        return
+
+    list_dir_with_page = re.search('EXPLORE list_dir (\\d+)', query.data)
+    if list_dir_with_page:
+        page = list_dir_with_page.group(1)
+        logging.info(f"Explore: show dir page {page} of {current_dir}")
+        query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_dirs_keyboard(int(page))))
+        return
+
+    goto_dir = re.search('EXPLORE goto_dir (.*)', query.data)
+    if goto_dir:
+        logging.info(f"Explore: leave {current_dir}")
+        current_dir = f'{current_dir}/{goto_dir.group(1)}'
+        logging.info(f"Explore: go to {current_dir}")
+        query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_dirs_keyboard(0)))
+        return
+
+    show_files = re.search('EXPLORE show_files (\\d+)', query.data)
+    if show_files:
+        page = show_files.group(1)
+        logging.info(f"Explore: show files page {page} of {current_dir}")
+        query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_files_keyboard(int(page))))
+        return
+
+    download_file = re.search('EXPLORE download (.*)', query.data)
+    if download_file:
+        download_file_path = f'{current_dir}/{download_file.group(1)}'
+        logging.info(f"Explore: download file {download_file_path}")
+        context.bot.send_document(chat_id=update.callback_query.message.chat.id, document=open(download_file_path, 'rb'))
+        query.edit_message_text(text=f"Uploaded: {download_file_path}")
+        return
+
+    if query.data == "EXPLORE close":
+        query.edit_message_text(text=f"Current dir is now {current_dir}")
+        return
+
+    query.edit_message_text(text=f"Selected option: {query.data}")
+
+
+def explore(update, context):
+    logging.info(f"Explore: {current_dir}")
+    update.message.reply_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_dirs_keyboard(0)))
+
+
 last_document = None
 
 
@@ -240,23 +371,27 @@ def on_document(update, context):
     global last_document
     user = update.message.from_user
     user_id = user.id
+    if is_not_allowed(user_id):
+        logging.info("Refused document: '%s'" % user_id)
+        return
+
     full_name = user.full_name
     username = user.username
     message_chat_id = update.message.chat_id
     doc_name = update.message.document.file_name
     logging.info("Received Document (%s): '%s'" % (user_id, doc_name))
-    persistence.record_doc(db_file, user_id, message_chat_id, full_name, username, doc_name)
-    if is_not_allowed(user_id):
-        logging.info("Refused document: '%s'" % user_id)
-        return
-    update.message.document.get_file().download("./documents/%s" % doc_name)
-    last_document = f'./documents/{doc_name}'
+    last_document = f'{current_dir}/{doc_name}'
+    logging.info(f"Will save it to {last_document}")
+    persistence.record_doc(db_file, user_id, message_chat_id, full_name, username, last_document)
+    update.message.document.get_file().download(last_document)
+    context.bot.send_message(message_chat_id, text=f'Saved file on {last_document}')
 
 
 dispatcher = updater.dispatcher
 
 cmds = [
     ('help', 'Display helpfull information on how to setup bot', help_bot),
+    ('explore', 'Explore files and change current dir', explore),
     ('ip', 'Gets the machine local ip', command_ip),
     ('webip', 'Gets the machine external ip', command_web_ip),
     ('logo', 'Returns a logo (testing purpose)', logo),
@@ -320,6 +455,8 @@ def commands(update, context):
 
 dispatcher.add_handler(CommandHandler('start', start))
 dispatcher.add_handler(CommandHandler('cmds', commands))
+
+updater.dispatcher.add_handler(CallbackQueryHandler(on_explore_callback, pattern='^EXPLORE .*$'))
 
 dispatcher.add_handler(MessageHandler(Filters.text, on_text))
 dispatcher.add_handler(MessageHandler(Filters.contact, on_contact))
