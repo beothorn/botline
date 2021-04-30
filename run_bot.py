@@ -348,6 +348,9 @@ def on_text(update, context):
     message_chat_id = update.message.chat_id
     logging.info("Received message (%s): '%s'" % (user_id, message))
     persistence.record_msg(db_file, user_id, message_chat_id, full_name, username, message)
+    if is_not_allowed(update.message.from_user.id):
+        if broadcast_unkown_messages:
+            msg_all(update, context)
 
 
 def on_contact(update, context):
