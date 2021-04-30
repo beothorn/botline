@@ -146,7 +146,7 @@ example:
 
 ## /down
 
-Gets a file from a path or from document folder
+Gets a file from a path or from current dir
 example:
 ```
 /down /home/user/foo.txt
@@ -168,4 +168,4 @@ Every contact sent by an admin also becomes an admin
 
 # Send and Receive files
 
-Every file is saved on the documents folder. To get the file use command getdoc
+Every file is saved on the "current dir" folder. To get the file use command /down

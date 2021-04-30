@@ -156,7 +156,7 @@ def down(update, context):
     if path.startswith('/'):
         context.bot.send_document(chat_id=update.message.chat_id, document=open(path, 'rb'))
     else:
-        context.bot.send_document(chat_id=update.message.chat_id, document=open(("./documents/%s" % path), 'rb'))
+        context.bot.send_document(chat_id=update.message.chat_id, document=open(f'{current_dir}/{path}', 'rb'))
 
 
 def msg_all(update, context):
