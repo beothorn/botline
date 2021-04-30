@@ -161,12 +161,6 @@ example:
 /store foo hello world
 /value foo
 ```
-# Url requests
-
-To send a message to all admins call, from the machine running the bot call the url:
-```
-http://localhost:5000/broadcast?token=TOKENHERE&msg=THEMESSAGE
-```
 
 # Add more Admins
 
