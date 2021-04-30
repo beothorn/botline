@@ -8,17 +8,33 @@ import subprocess
 import os
 import sys
 import requests
-from flask import Flask, request
-app = Flask(__name__)
+import configparser
 
-if len(sys.argv) < 3:
-    print('Usage: python run_bot.py TOKEN handle')
-    exit()
+bot_properties_file = 'bot.properties'
 
-token = sys.argv[1]
-handle = sys.argv[2]
+if os.path.isfile(bot_properties_file):
+    logging.info(f"Using {bot_properties_file}")
+    config = configparser.ConfigParser()
+    config.read('bot.properties')
+    token = config['bot_config']['token']
+    handle = config['bot_config']['handle']
+    db_file = config['bot_config']['db_file']
+    current_dir = config['bot_config']['current_dir']
+    enabled_cmd = config['cmds_config']['enabled_cmd']
+    broadcast_unkown_messages = config['cmds_config']['broadcast_unkown_messages']
+else:
+    if len(sys.argv) < 3:
+        print('Usage: python run_bot.py TOKEN handle')
+        exit()
+    token = sys.argv[1]
+    handle = sys.argv[2]
+    db_file = 'botbase.db'
+    current_dir = "."
+    enabled_cmd = 'explore,help,ip,webip,logo,whoami,chatid,img,exec,execa,get,down,broadcast,print,sql,store,value,values'
+    logging.info('All commands are enabled, to disable them use a bot.properties file')
 
-db_file = 'botbase.db'
+logging.info(f'Enabled commands {enabled_cmd}')
+allowed = enabled_cmd.split(',')
 
 logging.basicConfig(format='%(asctime)s - %(name)s - %(levelname)s - %(message)s', level=logging.INFO)
 logger = logging.getLogger(__name__)
@@ -113,13 +129,13 @@ def logo(update, context):
 
 def exec_cmd(update, context):
     #TODO: get error output
-    result = subprocess.run(context.args, stdout=subprocess.PIPE)
+    result = subprocess.run(context.args, stdout=subprocess.PIPE, cwd=current_dir)
     output = result.stdout.decode('utf-8')
     context.bot.send_message(chat_id=update.message.chat_id, text=output)
 
 
 def exec_cmd_bck(update, context):
-    subprocess.Popen(context.args)
+    subprocess.Popen(context.args, cwd=current_dir)
     context.bot.send_message(chat_id=update.message.chat_id, text="Running command")
 
 
@@ -178,6 +194,7 @@ def get_all_values(update, context):
             all_values += f' {v[0]}: {v[1]}'
         context.bot.send_message(chat_id=update.message.chat_id, text=all_values)
 
+
 last_document = None
 
 
@@ -187,7 +204,7 @@ def print_last_file(update, context):
     printers = conn.getPrinters()
     printer_name = list(printers.keys())[0]
     global last_document
-    conn.printFile(printer_name, last_document, " ", {})
+    conn.printFile(printer_name, last_document, "", {})
     context.bot.send_message(chat_id=update.message.chat_id, text=f'Will print {last_document}')
 
 
@@ -269,10 +286,18 @@ def closure(closure_alias, closure_callback):
     return run_cmd_if_allowed
 
 
+def command_not_enabled(update, context):
+    context.bot.send_message(chat_id=update.message.chat_id, text="This command is not enabled, "
+                                                                  "change bot.properties to enable it")
+
+
 for cmd in cmds:
     alias = cmd[0]
-    callback = cmd[2]
-    dispatcher.add_handler(CommandHandler(command=alias, callback=closure(alias, callback), pass_args=True))
+    if alias in allowed:
+        callback = cmd[2]
+        dispatcher.add_handler(CommandHandler(command=alias, callback=closure(alias, callback), pass_args=True))
+    else:
+        dispatcher.add_handler(CommandHandler(command=alias, callback=closure(alias, command_not_enabled)))
 
 all_commands = ""
 
@@ -312,18 +337,3 @@ updater_bot = updater.bot
 for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
     if chat != 0:
         updater_bot.send_message(chat, text=f'Bot {handle} started')
-
-
-@app.route('/broadcast')
-def broadcast():
-    tokenparam = request.args.get('token')
-    msg = request.args.get('msg')
-
-    if tokenparam == token:
-        for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
-            if chat != 0:
-                updater_bot.send_message(chat, text=msg)
-    return "Sent {}".format(msg)
-
-
-app.run()

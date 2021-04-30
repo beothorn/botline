@@ -12,7 +12,6 @@ Install the dependencies:
 sudo apt install python3-pip
 pip3 install python-telegram-bot --upgrade
 pip3 install requests
-pip3 install Flask
 
 # Optional
 
@@ -26,6 +25,12 @@ Run using the TOKEN:
 
 ```
 python3 run_bot.py 'TOKEN GOES HERE' mybot
+```
+
+Or create a bot.properties file, use the bot.properties.example to see available options:
+
+```
+python3 run_bot.py
 ```
 
 Then send a command /start to the bot to get admin rights, all other users are ignored.

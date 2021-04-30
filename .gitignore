@@ -1,6 +1,5 @@
-bot_config.py
+bot.properties
 botbase.db
-send_message.sh
 
 # Byte-compiled / optimized / DLL files
 __pycache__/
