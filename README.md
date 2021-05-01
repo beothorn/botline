@@ -11,7 +11,7 @@ Basic permissions can be configured using the bot.properties file.
 
 ### File explorer with inline keyboard:
 
-![explore example screenshot](http://https://raw.githubusercontent.com/beothorn/botline/master/explore.png)
+![explore example screenshot](https://raw.githubusercontent.com/beothorn/botline/master/explore.png)
 
 # Setup
 
