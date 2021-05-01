@@ -9,6 +9,10 @@ Printing is also available through pycups.
 
 Basic permissions can be configured using the bot.properties file.  
 
+### File explorer with inline keyboard:
+
+![explore example screenshot](http://https://raw.githubusercontent.com/beothorn/botline/master/explore.png)
+
 # Setup
 
 This bot needs python 3.6 or higher
