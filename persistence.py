@@ -59,9 +59,8 @@ def create_db(db_file):
     );
     """)
     cursor.execute("""
-    CREATE TABLE allowed_ids(
-        id                SERIAL       PRIMARY KEY,
-        user_id           INT          NOT NULL,
+    CREATE TABLE admin(
+        user_id           INT          PRIMARY KEY,
         chat_id           INT          NOT NULL,
         full_name         TEXT,
         username          TEXT
@@ -80,22 +79,33 @@ def record_doc(db_file, user_id, chat_id, full_name, username, file_name):
     VALUES (?, ?, ?, ?, ?, CURRENT_TIMESTAMP)""", (user_id, chat_id, full_name, username, file_name))
 
 
-def get_allowed_ids(db_file):
+def get_admin(db_file):
     connection = sqlite3.connect(db_file)
-    return connection.execute('SELECT user_id FROM allowed_ids').fetchall()
+    return connection.execute('SELECT user_id FROM admin').fetchall()
 
 
 def get_admin_chat_ids(db_file):
     connection = sqlite3.connect(db_file)
-    return connection.execute('SELECT chat_id FROM allowed_ids').fetchall()
+    return connection.execute('SELECT chat_id FROM admin').fetchall()
 
 
-def add_allowed_id(db_file, user_id, chat_id):
-    execute(db_file, """INSERT INTO allowed_ids (user_id, chat_id) VALUES (?, ?)""", (user_id, chat_id))
+def get_admins(db_file):
+    connection = sqlite3.connect(db_file)
+    return connection.execute('SELECT user_id, full_name, username FROM admin').fetchall()
 
 
-def update_chat_id(db_file, user_id, chat_id):
-    execute(db_file, """UPDATE allowed_ids SET chat_id = ? WHERE user_id = ?""", (chat_id, user_id))
+def add_admin(db_file, user_id, chat_id, full_name, username):
+    execute(db_file, """INSERT INTO admin (user_id, chat_id, full_name, username) VALUES (?, ?, ?, ?)""",
+            (user_id, chat_id, full_name, username))
+
+
+def delete_admin(db_file, admin_id):
+    execute(db_file, """DELETE FROM admin WHERE user_id = ?""", (admin_id, ))
+
+
+def update_admin_info(db_file, user_id, chat_id, full_name, username):
+    execute(db_file, """UPDATE admin SET chat_id = ?, full_name = ?, username =?   WHERE user_id = ?""",
+            (chat_id, full_name, username, user_id))
 
 
 def add_bot(db_file, token, handle):

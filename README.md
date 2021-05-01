@@ -72,6 +72,7 @@ Sends back an image (for testing purposes)
 ## /start
 
 Gets admin rights if no admin is already registered.
+If you were added as admin, updates the chat id associated with the user.
 
 ## /whoami
 
