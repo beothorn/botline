@@ -369,7 +369,10 @@ def print_file(update, context):
     if context.args:
         print(update, context, ' '.join(context.args))
     else:
-        print(update, context, last_document)
+        if last_document:
+            print(update, context, last_document)
+        else:
+            context.bot.send_message(chat_id=update.message.chat_id, text=f'No last document, please send one or use /print absolutePath')
 
 
 def on_text(update, context):
