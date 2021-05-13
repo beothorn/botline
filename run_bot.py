@@ -355,14 +355,21 @@ def explore(update, context):
 last_document = None
 
 
-def print_last_file(update, context):
+def print_and_callback(update, context, file):
     import cups
     conn = cups.Connection()
     printers = conn.getPrinters()
     printer_name = list(printers.keys())[0]
     global last_document
-    conn.printFile(printer_name, last_document, "", {})
+    conn.printFile(printer_name, file, "", {})
     context.bot.send_message(chat_id=update.message.chat_id, text=f'Will print {last_document}')
+
+
+def print_file(update, context):
+    if context.args:
+        print(update, context, ' '.join(context.args))
+    else:
+        print(update, context, last_document)
 
 
 def on_text(update, context):
@@ -435,7 +442,7 @@ cmds = [
     ('img', 'Returns an image.\n    /img <path>', img),
     ('ip', 'Gets the machine local ip.\n    /ip', command_ip),
     ('logo', 'Returns a logo (testing purpose).\n    /logo', logo),
-    ('print', 'Prints last document sent.\n    /print', print_last_file),
+    ('print', 'Prints last document sent.\n    /print\n    /print absolutePath', print_file),
     ('sql', 'Runs a sql query on bot sqlite db.\n    /sql <sql command>', sql_do),
     ('store', 'Stores a value on a map.\n    /store <key> <value>', store),
     ('value', 'Gets a value from the map.\n    /value <key>', get_value),
