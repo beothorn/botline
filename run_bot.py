@@ -361,9 +361,8 @@ def print_and_callback(update, context, file):
     conn = cups.Connection()
     printers = conn.getPrinters()
     printer_name = list(printers.keys())[0]
-    global last_document
     conn.printFile(printer_name, file, "", {})
-    context.bot.send_message(chat_id=update.message.chat_id, text=f'Will print {last_document}')
+    context.bot.send_message(chat_id=update.message.chat_id, text=f'Will try to print {file}')
 
 
 def print_file(update, context):
