@@ -367,6 +367,7 @@ def print_and_callback(update, context, file):
 
 
 def print_file(update, context):
+    logging.info(f"Received print command with args: {context.args}")
     if context.args:
         print(update, context, ' '.join(context.args))
     else:
@@ -461,7 +462,7 @@ def closure(closure_alias, closure_callback):
         if is_not_allowed(update.message.from_user.id):
             logging.info("Refused %s: '%s'" % (closure_alias, update.message.from_user.id))
             return
-        logging.info("Received message '%s' '%s'" % (closure_alias, ' '.join(context.args)))
+        logging.info("Received command '%s' '%s'" % (closure_alias, ' '.join(context.args)))
         closure_callback(update, context)
     return run_cmd_if_allowed
 
