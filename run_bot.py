@@ -369,10 +369,10 @@ def print_and_callback(update, context, file):
 def print_file(update, context):
     logging.info(f"Received print command with args: {context.args}")
     if context.args:
-        print(update, context, ' '.join(context.args))
+        print_and_callback(update, context, ' '.join(context.args))
     else:
         if last_document:
-            print(update, context, last_document)
+            print_and_callback(update, context, last_document)
         else:
             context.bot.send_message(chat_id=update.message.chat_id, text=f'No last document, please send one or use /print absolutePath')
 
