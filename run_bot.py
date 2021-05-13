@@ -356,6 +356,7 @@ last_document = None
 
 
 def print_and_callback(update, context, file):
+    logging.info(f"Will try to print {file}")
     import cups
     conn = cups.Connection()
     printers = conn.getPrinters()
