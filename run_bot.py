@@ -1,7 +1,6 @@
-from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (Updater, CommandHandler, MessageHandler, CallbackQueryHandler, ApplicationBuilder)
-import telegram.ext.filters as filters
-import telegram
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.constants import ParseMode
 import logging
 import persistence
 import socket
@@ -60,8 +59,6 @@ logging.info("Admins: %s" % str(persistence.get_admin(db_file)))
 
 waiting_for_first_connection = len(persistence.get_admin(db_file)) == 0
 
-application = ApplicationBuilder().token(token).build()
-
 
 def is_allowed(user_id):
     return user_id in map(lambda x: x[0], persistence.get_admin(db_file))
@@ -71,7 +68,7 @@ def is_not_allowed(user_id):
     return not is_allowed(user_id)
 
 
-def start(update, context):
+async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     logging.info("========================= START")
     user = update.message.from_user
     user_id = user.id
@@ -85,8 +82,8 @@ def start(update, context):
     if waiting_for_first_connection:
         persistence.add_admin(db_file, user_id, message_chat_id, full_name, username)
         waiting_for_first_connection = False
-        context.bot.send_message(message_chat_id, text="You are now admin\nUse /help to see what you can do")
         logging.info("Added new admin (%s): '%s'" % (user_id, message))
+        await update.message.reply_text("You are now admin\nUse /help to see what you can do")
         return
 
     if is_not_allowed(user_id):
@@ -97,72 +94,69 @@ def start(update, context):
     persistence.update_admin_info(db_file, user_id, message_chat_id, full_name, username)
     logging.info(f'Updated admin user_id: {user_id}, message_chat_id: {message_chat_id}, '
                  f'full_name: {full_name}, username: {username}')
-    context.bot.send_message(message_chat_id, text="You are now admin\nUse /help to see what you can do")
+    await update.message.reply_text("You are now admin\nUse /help to see what you can do")
 
 
-def command_ip(update, context):
+async def command_ip(update, context) -> None:
     s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
     s.connect(("8.8.8.8", 80))
     message = "{0}".format(s.getsockname()[0])
     s.close()
-    context.bot.send_message(chat_id=update.message.chat_id, text=message)
+    await update.message.reply_text(message)
 
 
-def command_web_ip(update, context):
+async def command_web_ip(update, context) -> None:
     result = requests.get("https://ifconfig.me/ip")
-    context.bot.send_message(chat_id=update.message.chat_id, text=result.text)
+    await update.message.reply_text(result.text)
 
 
-def help_bot(update, context):
+async def help_bot(update: Update) -> None:
     user = update.message.from_user
     user_id = user.id
-    message_chat_id = update.message.chat_id
     logging.info("HELP (%s)" % (user_id,))
-    with open('./README.md', 'r') as file:
-        context.bot.send_message(chat_id=message_chat_id, text=file.read(), parse_mode=telegram.ParseMode.MARKDOWN)
+    await update.message.reply_text(text=open('./README.md', 'r').read(), parse_mode=ParseMode.MARKDOWN)
 
 
-def who_am_i(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id, text=update.message.from_user.id)
+async def who_am_i(update, context):
+    await update.message.reply_text(update.message.from_user.id)
 
 
-def chat_id(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id, text=update.message.chat_id)
+async def chat_id(update, context):
+    await update.message.reply_text(update.message.chat_id)
 
 
-def img(update, context):
+async def img(update, context):
     path = ' '.join(context.args)
-    with open(path, 'rb') as file:
-        context.bot.send_photo(chat_id=update.message.chat_id,photo=file)
+    await update.message.reply_photo(open(path, 'rb'))
 
 
-def logo(update, context):
-    context.bot.send_photo(chat_id=update.message.chat_id, photo=open('./logo.png', 'rb'))
+async def logo(update, context):
+    await update.message.reply_photo(open('./logo.png', 'rb'))
 
 
-def exec_cmd(update, context):
+async def exec_cmd(update, context):
     #TODO: get error output
     result = subprocess.run(context.args, stdout=subprocess.PIPE, cwd=current_dir)
     output = result.stdout.decode('utf-8')
-    context.bot.send_message(chat_id=update.message.chat_id, text=output)
+    await update.message.reply_text(output)
 
 
-def exec_cmd_bck(update, context):
+async def exec_cmd_bck(update, context):
     subprocess.Popen(context.args, cwd=current_dir)
-    context.bot.send_message(chat_id=update.message.chat_id, text="Running command")
+    await update.message.reply_text("Running command")
 
 
-def get(update, context):
+async def get(update, context):
     result = requests.get(context.args[0])
-    context.bot.send_message(chat_id=update.message.chat_id, text=result.text)
+    await update.message.reply_text(result.text)
 
 
-def down(update, context):
+async def down(update, context):
     path = ' '.join(context.args)
     if path.startswith('/'):
-        context.bot.send_document(chat_id=update.message.chat_id, document=open(path, 'rb'))
+        await update.message.reply_document(open(path, 'r'))
     else:
-        context.bot.send_document(chat_id=update.message.chat_id, document=open(f'{current_dir}/{path}', 'rb'))
+        await update.message.reply_document(open(f'{current_dir}/{path}', 'r'))
 
 
 def broadcast(update, context, message):
@@ -174,59 +168,58 @@ def broadcast(update, context, message):
             context.bot.send_message(each_chat, text=msg_broadcast)
 
 
-def list_admins(update, context):
+async def list_admins(update, context):
     admin_list = []
     for admin_info in map(lambda x: f'user_id: {x[0]}, full_name: {x[1]}, username: {x[2]}',
                           persistence.get_admins(db_file)):
         admin_list.append(str(admin_info))
-    context.bot.send_message(update.message.chat_id, text='\n'.join(admin_list))
+    await update.message.reply_text('\n'.join(admin_list))
 
 
-def delete_admin(update, context):
+async def delete_admin(update, context):
     if len(persistence.get_admins(db_file)) == 1:
-        context.bot.send_message(update.message.chat_id, text="Can't delete the only admin, "
-                                                              "please add another admin and then delete this.")
+        await update.message.reply_text("Can't delete the only admin, please add another admin and then delete this.")
         return
     persistence.delete_admin(db_file, context.args[0])
-    context.bot.send_message(update.message.chat_id, text=f'Deleted admin id {context.args[0]}')
+    await update.message.reply_text(f'Deleted admin id {context.args[0]}')
 
 
-def msg_all(update, context):
+async def msg_all(update, context):
     message = ' '.join(context.args)
     broadcast(update, context, message)
 
 
-def sql_do(update, context):
+async def sql_do(update, context):
     query = ' '.join(context.args)
     result = persistence.sql_do(db_file, query)
-    context.bot.send_message(chat_id=update.message.chat_id, text=str(result))
+    await update.message.reply_document(str(result))
 
 
-def store(update, context):
+async def store(update, context):
     key = context.args[0]
     value = ' '.join(context.args[1:])
     persistence.store(db_file, key, value)
-    context.bot.send_message(chat_id=update.message.chat_id, text=("Stored value on key %s" % (key,)) )
+    await update.message.reply_document("Stored value on key %s" % (key,))
 
 
-def get_value(update, context):
+async def get_value(update, context):
     key = context.args[0]
     value = persistence.get_value(db_file, key)
     if len(value) == 0:
-        context.bot.send_message(chat_id=update.message.chat_id, text=f'No value for key {key}')
+        await update.message.reply_document(f'No value for key {key}')
     else:
-        context.bot.send_message(chat_id=update.message.chat_id, text=value[0][0])
+        await update.message.reply_document(value[0][0])
 
 
-def get_all_values(update, context):
+async def get_all_values(update, context):
     value = persistence.get_all_values(db_file)
     if len(value) == 0:
-        context.bot.send_message(chat_id=update.message.chat_id, text=f'No values on store')
+        await update.message.reply_document(f'No values on store')
     else:
         all_values = ''
         for v in value:
             all_values += f' {v[0]}: {v[1]}'
-        context.bot.send_message(chat_id=update.message.chat_id, text=all_values)
+        await update.message.reply_document(all_values)
 
 
 def list_directories():
@@ -348,7 +341,7 @@ def on_explore_callback(update, context) -> None:
     query.edit_message_text(text=f"Selected option: {query.data}")
 
 
-def explore(update, context):
+async def explore(update, context):
     logging.info(f"Explore: {current_dir}")
     update.message.reply_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_dirs_keyboard(0)))
 
@@ -356,25 +349,25 @@ def explore(update, context):
 last_document = None
 
 
-def print_and_callback(update, context, file):
+async def print_and_callback(update, context, file):
     logging.info(f"Will try to print {file}")
     import cups
     conn = cups.Connection()
     printers = conn.getPrinters()
     printer_name = list(printers.keys())[0]
     conn.printFile(printer_name, file, "", {})
-    context.bot.send_message(chat_id=update.message.chat_id, text=f'Will try to print {file}')
+    await update.message.reply_document(f'Will try to print {file}')
 
 
-def print_file(update, context):
+async def print_file(update, context):
     logging.info(f"Received print command with args: {context.args}")
     if context.args:
-        print_and_callback(update, context, ' '.join(context.args))
+        await print_and_callback(update, context, ' '.join(context.args))
     else:
         if last_document:
-            print_and_callback(update, context, last_document)
+            await print_and_callback(update, context, last_document)
         else:
-            context.bot.send_message(chat_id=update.message.chat_id, text=f'No last document, please send one or use /print absolutePath')
+            await update.message.reply_document(f'No last document, please send one or use /print absolutePath')
 
 
 def on_text(update, context):
@@ -456,32 +449,18 @@ cmds = [
 
 
 def closure(closure_alias, closure_callback):
-    def run_cmd_if_allowed(update, context):
+    async def run_cmd_if_allowed(update, context):
         if is_not_allowed(update.message.from_user.id):
             logging.info("Refused %s: '%s'" % (closure_alias, update.message.from_user.id))
             return
         logging.info("Received command '%s' '%s'" % (closure_alias, ' '.join(context.args)))
-        closure_callback(update, context)
+        await closure_callback(update, context)
     return run_cmd_if_allowed
 
 
 def command_not_enabled(update, context):
     context.bot.send_message(chat_id=update.message.chat_id, text="This command is not enabled, "
                                                                   "change bot.properties to enable it")
-
-
-for cmd in cmds:
-    alias = cmd[0]
-    if alias in allowed:
-        callback = cmd[2]
-        application.add_handler(CommandHandler(command=alias, callback=closure(alias, callback)))
-    else:
-        application.add_handler(CommandHandler(command=alias, callback=closure(alias, command_not_enabled)))
-
-all_commands = ""
-
-for cmd in cmds:
-    all_commands = all_commands + ("%s - %s\n" % (cmd[0], cmd[1]))
 
 
 def error_callback(update, context):
@@ -498,24 +477,58 @@ def commands(update, context):
     context.bot.send_message(chat_id=update.message.chat_id, text=all_commands)
 
 
-application.add_handler(CommandHandler('start', start))
-application.add_handler(CommandHandler('cmds', commands))
 
-application.add_handler(CallbackQueryHandler(on_explore_callback, pattern='^EXPLORE .*$'))
 
-application.add_handler(MessageHandler(filters.TEXT, on_text))
-application.add_handler(MessageHandler(filters.CONTACT, on_contact))
-application.add_handler(MessageHandler(filters.VIDEO | filters.PHOTO | filters.Document.ALL, on_document))
+#application.add_handler(CommandHandler('start', start))
+#application.add_handler(CommandHandler('cmds', commands))
 
-application.add_error_handler(error_callback)
+#application.add_handler(CallbackQueryHandler(on_explore_callback, pattern='^EXPLORE .*$'))
+
+#application.add_handler(MessageHandler(filters.TEXT, on_text))
+#application.add_handler(MessageHandler(filters.CONTACT, on_contact))
+#application.add_handler(MessageHandler(filters.VIDEO | filters.PHOTO | filters.Document.ALL, on_document))
+
+#application.add_error_handler(error_callback)
 
 logging.info("Admins: %s" % str(persistence.get_admin(db_file)))
 
 logging.info("Starting bot")
-application.run_polling()
+#application.run_polling()
 
-updater_bot = application.bot
+#updater_bot = application.bot
 
-for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
-    if chat != 0:
-        updater_bot.send_message(chat, text=f'Bot {handle} started {datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}')
+#for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
+#    if chat != 0:
+#        updater_bot.send_message(chat, text=f'Bot {handle} started {datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}')
+
+
+###########################
+async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await update.message.reply_text(update.message.text)
+
+def main() -> None:
+    application = Application.builder().token(token).build()
+    application.add_handler(CommandHandler("start", start))
+    application.add_handler(CommandHandler("help", help_bot))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+
+    for cmd in cmds:
+        alias = cmd[0]
+        if alias in allowed:
+            callback = cmd[2]
+            application.add_handler(CommandHandler(alias, closure(alias, callback)))
+        else:
+            application.add_handler(CommandHandler(alias, closure(alias, command_not_enabled)))
+
+    all_commands = ""
+
+    for cmd in cmds:
+        all_commands = all_commands + ("%s - %s\n" % (cmd[0], cmd[1]))
+
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
+
+###########################
+
+
+if __name__ == "__main__":
+    main()
