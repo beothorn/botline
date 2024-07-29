@@ -1,5 +1,6 @@
 from telegram import ForceReply, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import (Updater, CommandHandler, MessageHandler, Filters, CallbackQueryHandler)
+from telegram.ext import (Updater, CommandHandler, MessageHandler, CallbackQueryHandler, ApplicationBuilder)
+import telegram.ext.filters as filters
 import telegram
 import logging
 import persistence
@@ -59,7 +60,7 @@ logging.info("Admins: %s" % str(persistence.get_admin(db_file)))
 
 waiting_for_first_connection = len(persistence.get_admin(db_file)) == 0
 
-updater = Updater(token, use_context=True)
+application = ApplicationBuilder().token(token).build()
 
 
 def is_allowed(user_id):
@@ -425,8 +426,6 @@ def on_document(update, context):
     context.bot.send_message(message_chat_id, text=f'Saved file on {last_document}')
 
 
-dispatcher = updater.dispatcher
-
 
 def to_be_implemented(update, context):
     context.bot.send_message(chat_id=update.message.chat_id, text='Not implemented yet.')
@@ -475,9 +474,9 @@ for cmd in cmds:
     alias = cmd[0]
     if alias in allowed:
         callback = cmd[2]
-        dispatcher.add_handler(CommandHandler(command=alias, callback=closure(alias, callback), pass_args=True))
+        application.add_handler(CommandHandler(command=alias, callback=closure(alias, callback)))
     else:
-        dispatcher.add_handler(CommandHandler(command=alias, callback=closure(alias, command_not_enabled)))
+        application.add_handler(CommandHandler(command=alias, callback=closure(alias, command_not_enabled)))
 
 all_commands = ""
 
@@ -499,23 +498,23 @@ def commands(update, context):
     context.bot.send_message(chat_id=update.message.chat_id, text=all_commands)
 
 
-dispatcher.add_handler(CommandHandler('start', start))
-dispatcher.add_handler(CommandHandler('cmds', commands))
+application.add_handler(CommandHandler('start', start))
+application.add_handler(CommandHandler('cmds', commands))
 
-updater.dispatcher.add_handler(CallbackQueryHandler(on_explore_callback, pattern='^EXPLORE .*$'))
+application.add_handler(CallbackQueryHandler(on_explore_callback, pattern='^EXPLORE .*$'))
 
-dispatcher.add_handler(MessageHandler(Filters.text, on_text))
-dispatcher.add_handler(MessageHandler(Filters.contact, on_contact))
-dispatcher.add_handler(MessageHandler(Filters.document, on_document))
+application.add_handler(MessageHandler(filters.TEXT, on_text))
+application.add_handler(MessageHandler(filters.CONTACT, on_contact))
+application.add_handler(MessageHandler(filters.VIDEO | filters.PHOTO | filters.Document.ALL, on_document))
 
-dispatcher.add_error_handler(error_callback)
+application.add_error_handler(error_callback)
 
 logging.info("Admins: %s" % str(persistence.get_admin(db_file)))
 
 logging.info("Starting bot")
-updater.start_polling()
+application.run_polling()
 
-updater_bot = updater.bot
+updater_bot = application.bot
 
 for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
     if chat != 0:
