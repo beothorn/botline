@@ -4,6 +4,6 @@ handle=Any_name_for_the_bot
 db_file=botbase.db
 current_dir=.
 [cmds_config]
-enabled_cmd=explore,help,ip,webip,logo,whoami,chatid,img,exec,execa,get,down,broadcast,print,sql,store,value,values
+enabled_cmd=explore,help,ip,webip,logo,whoami,chatid,img,exec,execa,get,down,broadcast,print,sql,store,value,values,lsadmins,rmadmin
 broadcast_unkown_messages=false
 buttons_rows_per_page=10

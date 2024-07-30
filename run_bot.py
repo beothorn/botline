@@ -315,25 +315,29 @@ def closure_for_commands_that_return_text(closure_alias, closure_callback):
     global db_file
 
     async def run_cmd_if_allowed(update, context):
-        if is_not_allowed(update.message.from_user.id):
-            logging.info("Refused %s: '%s'" % (closure_alias, update.message.from_user.id))
-            return
-        logging.info("Received command '%s' '%s'" % (closure_alias, ' '.join(context.args)))
-        message_context = {
-            "user_id": update.message.from_user.id,
-            "chat_id": update.message.chat_id,
-            "args": context.args,
-            "dir": current_dir,
-            "db_file": db_file,
-            "text": update.message.text,
-        }
-        await update.message.reply_text(closure_callback(message_context))
+        try:
+            if is_not_allowed(update.message.from_user.id):
+                logging.info("Refused %s: '%s'" % (closure_alias, update.message.from_user.id))
+                return
+            logging.info("Received command '%s' '%s'" % (closure_alias, ' '.join(context.args)))
+            message_context = {
+                "user_id": update.message.from_user.id,
+                "chat_id": update.message.chat_id,
+                "args": context.args,
+                "dir": current_dir,
+                "db_file": db_file,
+                "text": update.message.text,
+                "command": closure_alias,
+            }
+            text = closure_callback(message_context)
+            await update.message.reply_text(text)
+        except Exception as e:
+            await update.message.reply_text(str(e))
     return run_cmd_if_allowed
 
 
-def command_not_enabled(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id, text="This command is not enabled, "
-                                                                  "change bot.properties to enable it")
+def command_not_enabled(message_context):
+    return f'Command {message_context["command"]} is not enabled, change bot.properties to enable it'
 
 
 def error_callback(update, context):
