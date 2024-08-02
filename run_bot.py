@@ -486,7 +486,9 @@ def home():
 
 @app.route('/broadcast', methods=['POST'])
 async def broadcast():
+    logging.info(f'Received broadcast')
     message = request.form['message']
+    logging.info(f'Received broadcast {message}')
     for each_chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
         if each_chat != 0:
             await bot.send_message(each_chat, text=message)
