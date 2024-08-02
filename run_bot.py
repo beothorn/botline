@@ -495,7 +495,7 @@ async def broadcast():
 
 
 def run_flask_app():
-    app.run(port=8963)
+    app.run(host='0.0.0.0', port=8963)
 
 
 if __name__ == '__main__':
