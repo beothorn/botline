@@ -4,10 +4,10 @@ def img(message_context):
 
 
 def logo(message_context):
-    return open('../logo.png', 'rb')
+    return open('./logo.png', 'rb')
 
 
-cmds = [
+commands_that_return_photo = [
     ('img', 'Returns an image.\n    /img <path>', img),
     ('logo', 'Returns a logo (testing purpose).\n    /logo', logo),
 ]

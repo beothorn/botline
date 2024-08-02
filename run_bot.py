@@ -1,6 +1,10 @@
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot
+from telegram.constants import ParseMode
 
+from commands.commandsReturningDocument import commands_that_return_document
+from commands.commandsReturningMarkdown import commands_that_return_markdown
+from commands.commandsReturningPhoto import commands_that_return_photo
 from commands.commandsReturningText import commands_that_return_text
 
 import logging
@@ -10,8 +14,6 @@ import sys
 import configparser
 from pathlib import Path
 import re
-import asyncio
-import datetime
 from flask import Flask, request, jsonify
 import threading
 
@@ -221,7 +223,7 @@ async def on_explore_callback(update, context) -> None:
     if download_file:
         download_file_path = f'{current_dir}/{download_file.group(1)}'
         logging.info(f"Explore: download file {download_file_path}")
-        context.bot.send_document(chat_id=update.callback_query.message.chat.id, document=open(download_file_path, 'rb'))
+        await context.bot.send_document(chat_id=update.callback_query.message.chat.id, document=open(download_file_path, 'rb'))
         await query.edit_message_text(text=f"Uploaded: {download_file_path}")
         return
 
@@ -229,12 +231,12 @@ async def on_explore_callback(update, context) -> None:
         await query.edit_message_text(text=f"Current dir is now {current_dir}")
         return
 
-    query.edit_message_text(text=f"Selected option: {query.data}")
+    await query.edit_message_text(text=f"Selected option: {query.data}")
 
 
 async def explore(update, context):
     logging.info(f"Explore: {current_dir}")
-    update.message.reply_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_dirs_keyboard(0)))
+    await update.message.reply_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_dirs_keyboard(0)))
 
 
 last_document = None
@@ -273,6 +275,8 @@ async def on_text(update, context):
     if is_not_allowed(update.message.from_user.id):
         if broadcast_unkown_messages:
             await broadcast(update, context, message)
+    else:
+        await context.bot.send_message(message_chat_id, text=message)
 
 
 async def on_contact(update, context):
@@ -310,7 +314,7 @@ async def on_document(update, context):
     await context.bot.send_message(message_chat_id, text=f'Saved file on {last_document}')
 
 
-def closure_for_commands_that_return_text(closure_alias, closure_callback):
+def closure_for_commands(closure_alias, closure_callback):
     global current_dir
     global db_file
 
@@ -329,11 +333,38 @@ def closure_for_commands_that_return_text(closure_alias, closure_callback):
                 "text": update.message.text,
                 "command": closure_alias,
             }
-            text = closure_callback(message_context)
-            await update.message.reply_text(text)
+            await closure_callback(update, context, message_context)
         except Exception as e:
             await update.message.reply_text(str(e))
     return run_cmd_if_allowed
+
+
+def closure_for_commands_that_return_text(closure_alias, closure_callback):
+    async def callback(update, context, message_context):
+        text = closure_callback(message_context)
+        await update.message.reply_text(text)
+    return closure_for_commands(closure_alias, callback)
+
+
+def closure_for_commands_that_return_document(closure_alias, closure_callback):
+    async def callback(update, context, message_context):
+        doc = closure_callback(message_context)
+        await update.message.reply_document(doc)
+    return closure_for_commands(closure_alias, callback)
+
+
+def closure_for_commands_that_return_markdown(closure_alias, closure_callback):
+    async def callback(update, context, message_context):
+        doc = closure_callback(message_context)
+        await update.message.reply_text(doc, parse_mode=ParseMode.MARKDOWN)
+    return closure_for_commands(closure_alias, callback)
+
+
+def closure_for_commands_that_return_photo(closure_alias, closure_callback):
+    async def callback(update, context, message_context):
+        photo = closure_callback(message_context)
+        await update.message.reply_photo(photo)
+    return closure_for_commands(closure_alias, callback)
 
 
 def command_not_enabled(message_context):
@@ -341,10 +372,14 @@ def command_not_enabled(message_context):
 
 
 async def error_callback(update, context):
-    error_description = f'Update:\n"{update}"\n caused error:\n"{context.error}"'
-    logging.error(error_description)
-    if is_allowed(update.message.from_user.id):
-        await context.bot.send_message(chat_id=update.message.chat_id, text=error_description)
+    try:
+        error_description = f'Update:\n"{update}"\n caused error:\n"{context.error}"'
+        logging.error(error_description)
+        if is_allowed(update.message.from_user.id):
+            await context.bot.send_message(chat_id=update.message.chat_id, text=error_description)
+    except Exception as e:
+        logging.error(e)
+
 
 
 logging.info("Admins: %s" % str(persistence.get_admin(db_file)))
@@ -352,23 +387,41 @@ logging.info("Admins: %s" % str(persistence.get_admin(db_file)))
 logging.info("Starting bot")
 
 
-def send_startup_messages(bot: Bot, chats: list):
-    async def send_message(chat_id):
-        await bot.send_message(
-            chat_id=chat_id,
-            text=f'Bot {handle} started {datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}'
-        )
-    async def run():
-        await asyncio.gather(*(send_message(chat) for chat in chats if chat != 0))
-    admin_chat_ids = list(map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)))
-
-
 bot = Bot(token)
+
 
 def main() -> None:
     application = Application.builder().concurrent_updates(True).bot(bot).build()
     application.add_handler(CommandHandler("start", start))
     application.add_handler(CommandHandler("broadcast", msg_all))
+    application.add_handler(CommandHandler("explore", explore))
+
+    for cmd in commands_that_return_document:
+        alias = cmd[0]
+        if alias in allowed:
+            callback = cmd[2]
+            application.add_handler(CommandHandler(alias, closure_for_commands_that_return_document(alias, callback)))
+        else:
+            application.add_handler(
+                CommandHandler(alias, closure_for_commands_that_return_text(alias, command_not_enabled)))
+
+    for cmd in commands_that_return_markdown:
+        alias = cmd[0]
+        if alias in allowed:
+            callback = cmd[2]
+            application.add_handler(CommandHandler(alias, closure_for_commands_that_return_markdown(alias, callback)))
+        else:
+            application.add_handler(
+                CommandHandler(alias, closure_for_commands_that_return_text(alias, command_not_enabled)))
+
+    for cmd in commands_that_return_photo:
+        alias = cmd[0]
+        if alias in allowed:
+            callback = cmd[2]
+            application.add_handler(CommandHandler(alias, closure_for_commands_that_return_photo(alias, callback)))
+        else:
+            application.add_handler(
+                CommandHandler(alias, closure_for_commands_that_return_text(alias, command_not_enabled)))
 
     for cmd in commands_that_return_text:
         alias = cmd[0]
@@ -376,7 +429,8 @@ def main() -> None:
             callback = cmd[2]
             application.add_handler(CommandHandler(alias, closure_for_commands_that_return_text(alias, callback)))
         else:
-            application.add_handler(CommandHandler(alias, closure_for_commands_that_return_text(alias, command_not_enabled)))
+            application.add_handler(
+                CommandHandler(alias, closure_for_commands_that_return_text(alias, command_not_enabled)))
 
     application.add_handler(CallbackQueryHandler(on_explore_callback, pattern='^EXPLORE .*$'))
 
@@ -433,12 +487,12 @@ def home():
 @app.route('/broadcast', methods=['POST'])
 async def broadcast():
     message = request.form['message']
-    # Log the broadcasted message
     for each_chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
         if each_chat != 0:
             await bot.send_message(each_chat, text=message)
     response = {"message": "Broadcast received", "broadcast": message}
     return jsonify(response)
+
 
 def run_flask_app():
     app.run(port=8963)
