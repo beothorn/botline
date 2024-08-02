@@ -1,5 +1,5 @@
-from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot
 
 from commands.commandsReturningText import commands_that_return_text
 
@@ -10,6 +10,10 @@ import sys
 import configparser
 from pathlib import Path
 import re
+import asyncio
+import datetime
+from flask import Flask, request, jsonify
+import threading
 
 
 bot_properties_file = 'bot.properties'
@@ -95,18 +99,18 @@ async def start(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await update.message.reply_text("You are now admin\nUse /help to see what you can do")
 
 
-def broadcast(update, context, message):
+async def broadcast(update, context, message):
     user = update.message.from_user
     user_id = user.id
     msg_broadcast = ("%s %s: %s" % (user_id, user.first_name, message))
     for each_chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
         if each_chat != 0:
-            context.bot.send_message(each_chat, text=msg_broadcast)
+            await context.bot.send_message(each_chat, text=msg_broadcast)
 
 
 async def msg_all(update, context):
     message = ' '.join(context.args)
-    broadcast(update, context, message)
+    await broadcast(update, context, message)
 
 
 def list_directories():
@@ -171,7 +175,7 @@ def all_files_keyboard(page):
     return with_remaining_removed
 
 
-def on_explore_callback(update, context) -> None:
+async def on_explore_callback(update, context) -> None:
     global current_dir
     query = update.callback_query
 
@@ -183,19 +187,19 @@ def on_explore_callback(update, context) -> None:
         logging.info(f"Explore: leave {current_dir}")
         current_dir = parent_dir()
         logging.info(f"Explore: go to {current_dir}")
-        query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_dirs_keyboard(0)))
+        await query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_dirs_keyboard(0)))
         return
 
     if query.data == "EXPLORE show_files":
         logging.info(f"Explore: show files for {current_dir}")
-        query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_files_keyboard(0)))
+        await query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_files_keyboard(0)))
         return
 
     list_dir_with_page = re.search('EXPLORE list_dir (\\d+)', query.data)
     if list_dir_with_page:
         page = list_dir_with_page.group(1)
         logging.info(f"Explore: show dir page {page} of {current_dir}")
-        query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_dirs_keyboard(int(page))))
+        await query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_dirs_keyboard(int(page))))
         return
 
     goto_dir = re.search('EXPLORE goto_dir (.*)', query.data)
@@ -203,14 +207,14 @@ def on_explore_callback(update, context) -> None:
         logging.info(f"Explore: leave {current_dir}")
         current_dir = f'{current_dir}/{goto_dir.group(1)}'
         logging.info(f"Explore: go to {current_dir}")
-        query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_dirs_keyboard(0)))
+        await query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_dirs_keyboard(0)))
         return
 
     show_files = re.search('EXPLORE show_files (\\d+)', query.data)
     if show_files:
         page = show_files.group(1)
         logging.info(f"Explore: show files page {page} of {current_dir}")
-        query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_files_keyboard(int(page))))
+        await query.edit_message_text(text=current_dir, reply_markup=InlineKeyboardMarkup(all_files_keyboard(int(page))))
         return
 
     download_file = re.search('EXPLORE download (.*)', query.data)
@@ -218,11 +222,11 @@ def on_explore_callback(update, context) -> None:
         download_file_path = f'{current_dir}/{download_file.group(1)}'
         logging.info(f"Explore: download file {download_file_path}")
         context.bot.send_document(chat_id=update.callback_query.message.chat.id, document=open(download_file_path, 'rb'))
-        query.edit_message_text(text=f"Uploaded: {download_file_path}")
+        await query.edit_message_text(text=f"Uploaded: {download_file_path}")
         return
 
     if query.data == "EXPLORE close":
-        query.edit_message_text(text=f"Current dir is now {current_dir}")
+        await query.edit_message_text(text=f"Current dir is now {current_dir}")
         return
 
     query.edit_message_text(text=f"Selected option: {query.data}")
@@ -257,7 +261,7 @@ async def print_file(update, context):
             await update.message.reply_document(f'No last document, please send one or use /print absolutePath')
 
 
-def on_text(update, context):
+async def on_text(update, context):
     user = update.message.from_user
     user_id = user.id
     full_name = user.full_name
@@ -268,10 +272,10 @@ def on_text(update, context):
     persistence.record_msg(db_file, user_id, message_chat_id, full_name, username, message)
     if is_not_allowed(update.message.from_user.id):
         if broadcast_unkown_messages:
-            broadcast(update, context, message)
+            await broadcast(update, context, message)
 
 
-def on_contact(update, context):
+async def on_contact(update, context):
     user = update.message.from_user
     user_id = user.id
     contact_id = update.message.contact.user_id
@@ -282,11 +286,11 @@ def on_contact(update, context):
         return
     logging.info("Received Contact (%s): '%s'" % (user_id, contact_id))
     persistence.add_admin(db_file, contact_id, 0, "", "")
-    context.bot.send_message(message_chat_id, text=("Now %s is admin" % contact_name))
     logging.info("Admins: %s" % str(persistence.get_admin(db_file)))
+    await context.bot.send_message(message_chat_id, text=("Now %s is admin" % contact_name))
 
 
-def on_document(update, context):
+async def on_document(update, context):
     global last_document
     user = update.message.from_user
     user_id = user.id
@@ -303,11 +307,7 @@ def on_document(update, context):
     logging.info(f"Will save it to {last_document}")
     persistence.record_doc(db_file, user_id, message_chat_id, full_name, username, last_document)
     update.message.document.get_file().download(last_document)
-    context.bot.send_message(message_chat_id, text=f'Saved file on {last_document}')
-
-
-def to_be_implemented(update, context):
-    context.bot.send_message(chat_id=update.message.chat_id, text='Not implemented yet.')
+    await context.bot.send_message(message_chat_id, text=f'Saved file on {last_document}')
 
 
 def closure_for_commands_that_return_text(closure_alias, closure_callback):
@@ -340,51 +340,35 @@ def command_not_enabled(message_context):
     return f'Command {message_context["command"]} is not enabled, change bot.properties to enable it'
 
 
-def error_callback(update, context):
+async def error_callback(update, context):
     error_description = f'Update:\n"{update}"\n caused error:\n"{context.error}"'
     logging.error(error_description)
     if is_allowed(update.message.from_user.id):
-        context.bot.send_message(chat_id=update.message.chat_id, text=error_description)
+        await context.bot.send_message(chat_id=update.message.chat_id, text=error_description)
 
-
-def commands(update, context):
-    if is_not_allowed(update.message.from_user.id):
-        logging.info("Refused commands: '%s'" % (update.message.from_user.id,))
-        return
-    context.bot.send_message(chat_id=update.message.chat_id, text=all_commands)
-
-#application.add_handler(CommandHandler('start', start))
-#application.add_handler(CommandHandler('cmds', commands))
-
-#application.add_handler(CallbackQueryHandler(on_explore_callback, pattern='^EXPLORE .*$'))
-
-#application.add_handler(MessageHandler(filters.TEXT, on_text))
-#application.add_handler(MessageHandler(filters.CONTACT, on_contact))
-#application.add_handler(MessageHandler(filters.VIDEO | filters.PHOTO | filters.Document.ALL, on_document))
-
-#application.add_error_handler(error_callback)
 
 logging.info("Admins: %s" % str(persistence.get_admin(db_file)))
 
 logging.info("Starting bot")
-#application.run_polling()
-
-#updater_bot = application.bot
-
-#for chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
-#    if chat != 0:
-#        updater_bot.send_message(chat, text=f'Bot {handle} started {datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}')
 
 
-###########################
-async def echo(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await update.message.reply_text(update.message.text)
+def send_startup_messages(bot: Bot, chats: list):
+    async def send_message(chat_id):
+        await bot.send_message(
+            chat_id=chat_id,
+            text=f'Bot {handle} started {datetime.datetime.now().strftime("%d/%m/%Y, %H:%M:%S")}'
+        )
+    async def run():
+        await asyncio.gather(*(send_message(chat) for chat in chats if chat != 0))
+    admin_chat_ids = list(map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)))
 
+
+bot = Bot(token)
 
 def main() -> None:
-    application = Application.builder().token(token).build()
+    application = Application.builder().concurrent_updates(True).bot(bot).build()
     application.add_handler(CommandHandler("start", start))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, echo))
+    application.add_handler(CommandHandler("broadcast", msg_all))
 
     for cmd in commands_that_return_text:
         alias = cmd[0]
@@ -394,10 +378,80 @@ def main() -> None:
         else:
             application.add_handler(CommandHandler(alias, closure_for_commands_that_return_text(alias, command_not_enabled)))
 
-    application.run_polling(allowed_updates=Update.ALL_TYPES)
+    application.add_handler(CallbackQueryHandler(on_explore_callback, pattern='^EXPLORE .*$'))
 
-###########################
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
+    application.add_handler(MessageHandler(filters.CONTACT, on_contact))
+    application.add_handler(MessageHandler(filters.VIDEO | filters.PHOTO | filters.Document.ALL, on_document))
+
+    application.add_error_handler(error_callback)
+
+    application.run_polling(allowed_updates=Update.ALL_TYPES, close_loop=True)
 
 
-if __name__ == "__main__":
-    main()
+app = Flask(__name__)
+
+
+@app.route('/')
+def home():
+    return '''
+        <!doctype html>
+        <html>
+        <head><title>Broadcast</title></head>
+        <body>
+            <form id="broadcast-form">
+                <label for="message">Enter your message:</label>
+                <input type="text" id="message" name="message">
+                <button type="submit">Broadcast</button>
+            </form>
+            <div id="response"></div>
+            <script>
+                document.getElementById('broadcast-form').addEventListener('submit', async function(event) {
+                    event.preventDefault();
+                    const message = document.getElementById('message').value;
+                    const responseDiv = document.getElementById('response');
+                    try {
+                        const response = await fetch('/broadcast', {
+                            method: 'POST',
+                            headers: {
+                                'Content-Type': 'application/json'
+                            },
+                            body: JSON.stringify({ message })
+                        });
+                        const data = await response.json();
+                        responseDiv.innerHTML = `<p>${data.message}: ${data.broadcast}</p>`;
+                    } catch (error) {
+                        responseDiv.innerHTML = `<p>Error: ${error}</p>`;
+                    }
+                });
+            </script>
+        </body>
+        </html>
+        '''
+
+
+@app.route('/broadcast', methods=['POST'])
+async def broadcast():
+    message = request.form['message']
+    # Log the broadcasted message
+    for each_chat in map(lambda x: x[0], persistence.get_admin_chat_ids(db_file)):
+        if each_chat != 0:
+            await bot.send_message(each_chat, text=message)
+    response = {"message": "Broadcast received", "broadcast": message}
+    return jsonify(response)
+
+def run_flask_app():
+    app.run(port=8963)
+
+
+if __name__ == '__main__':
+    try:
+        flask_thread = threading.Thread(target=run_flask_app)
+        flask_thread.start()
+        main()
+        flask_thread.join()
+    except RuntimeError as e:
+        print(f"Runtime error: {e}")
+
+
+
