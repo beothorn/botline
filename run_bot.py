@@ -1,5 +1,6 @@
 from telegram.ext import Application, CommandHandler, ContextTypes, MessageHandler, filters, CallbackQueryHandler
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, Bot
+from telegram.request import HTTPXRequest
 from telegram.constants import ParseMode
 
 from commands.commandsReturningDocument import commands_that_return_document
@@ -387,7 +388,9 @@ logging.info("Admins: %s" % str(persistence.get_admin(db_file)))
 logging.info("Starting bot")
 
 
-bot = Bot(token)
+
+trequest = HTTPXRequest(connection_pool_size=20)
+bot = Bot(token=token, request=trequest)
 
 
 def main() -> None:
