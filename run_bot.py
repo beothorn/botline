@@ -17,6 +17,8 @@ from pathlib import Path
 import re
 from flask import Flask, request, jsonify
 import threading
+import string
+import random
 
 
 bot_properties_file = 'bot.properties'
@@ -295,7 +297,7 @@ async def on_contact(update, context):
     await context.bot.send_message(message_chat_id, text=("Now %s is admin" % contact_name))
 
 
-async def on_downloadable(update, context, file_id):
+async def on_downloadable(update, context):
     global last_document
     user = update.message.from_user
     user_id = user.id
@@ -306,22 +308,18 @@ async def on_downloadable(update, context, file_id):
     full_name = user.full_name
     username = user.username
     message_chat_id = update.message.chat_id
-    doc_name = file_id if update.message.document is None else update.message.document.file_name
+    doc_name = ''.join(random.choice(string.ascii_uppercase) for _ in range(6)) if update.message.document is None \
+        else update.message.document.file_name
     logging.info("Received Document (%s): '%s'" % (user_id, doc_name))
     last_document = f'{current_dir}/{doc_name}'
     logging.info(f"Will save it to {last_document}")
     persistence.record_doc(db_file, user_id, message_chat_id, full_name, username, last_document)
-    new_file = await bot.get_file(file_id)
+
+    new_file = await (update.message.effective_attachment[-1].get_file() if
+                      isinstance(update.message.effective_attachment, tuple) else
+                      update.message.effective_attachment.get_file())
     await new_file.download_to_drive(last_document)
     await context.bot.send_message(message_chat_id, text=f'Saved file on {last_document}')
-
-
-async def on_photo(update, context):
-    await on_downloadable(update, context, update.message.photo[-1].file_id)
-
-
-async def on_document(update, context):
-    await on_downloadable(update, context, update.message.document.file_id)
 
 
 def closure_for_commands(closure_alias, closure_callback):
@@ -396,10 +394,8 @@ logging.info("Admins: %s" % str(persistence.get_admin(db_file)))
 
 logging.info("Starting bot")
 
-
-
-trequest = HTTPXRequest(connection_pool_size=20)
-bot = Bot(token=token, request=trequest)
+request = HTTPXRequest(connection_pool_size=20)
+bot = Bot(token=token, request=request)
 
 
 def main() -> None:
@@ -448,8 +444,7 @@ def main() -> None:
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     application.add_handler(MessageHandler(filters.CONTACT, on_contact))
-    application.add_handler(MessageHandler(filters.Document.ALL, on_document))
-    application.add_handler(MessageHandler(filters.VIDEO | filters.PHOTO, on_photo))
+    application.add_handler(MessageHandler(filters.Document.ALL | filters.VIDEO | filters.PHOTO , on_downloadable))
 
     application.add_error_handler(error_callback)
 
