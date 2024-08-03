@@ -295,7 +295,7 @@ async def on_contact(update, context):
     await context.bot.send_message(message_chat_id, text=("Now %s is admin" % contact_name))
 
 
-async def on_document(update, context):
+async def on_downloadable(update, context, file_id):
     global last_document
     user = update.message.from_user
     user_id = user.id
@@ -306,13 +306,22 @@ async def on_document(update, context):
     full_name = user.full_name
     username = user.username
     message_chat_id = update.message.chat_id
-    doc_name = update.message.document.file_name
+    doc_name = file_id if update.message.document is None else update.message.document.file_name
     logging.info("Received Document (%s): '%s'" % (user_id, doc_name))
     last_document = f'{current_dir}/{doc_name}'
     logging.info(f"Will save it to {last_document}")
     persistence.record_doc(db_file, user_id, message_chat_id, full_name, username, last_document)
-    update.message.document.get_file().download(last_document)
+    new_file = await bot.get_file(file_id)
+    await new_file.download_to_drive(last_document)
     await context.bot.send_message(message_chat_id, text=f'Saved file on {last_document}')
+
+
+async def on_photo(update, context):
+    await on_downloadable(update, context, update.message.photo[-1].file_id)
+
+
+async def on_document(update, context):
+    await on_downloadable(update, context, update.message.document.file_id)
 
 
 def closure_for_commands(closure_alias, closure_callback):
@@ -439,7 +448,8 @@ def main() -> None:
 
     application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, on_text))
     application.add_handler(MessageHandler(filters.CONTACT, on_contact))
-    application.add_handler(MessageHandler(filters.VIDEO | filters.PHOTO | filters.Document.ALL, on_document))
+    application.add_handler(MessageHandler(filters.Document.ALL, on_document))
+    application.add_handler(MessageHandler(filters.VIDEO | filters.PHOTO, on_photo))
 
     application.add_error_handler(error_callback)
 
