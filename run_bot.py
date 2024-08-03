@@ -443,7 +443,7 @@ def main() -> None:
 
     application.add_error_handler(error_callback)
 
-    application.run_polling(allowed_updates=Update.ALL_TYPES, close_loop=True)
+    application.run_polling(allowed_updates=Update.ALL_TYPES)
 
 
 app = Flask(__name__)
