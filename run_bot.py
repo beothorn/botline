@@ -394,8 +394,8 @@ logging.info("Admins: %s" % str(persistence.get_admin(db_file)))
 
 logging.info("Starting bot")
 
-request = HTTPXRequest(connection_pool_size=20)
-bot = Bot(token=token, request=request)
+telegram_request = HTTPXRequest(connection_pool_size=20)
+bot = Bot(token=token, request=telegram_request)
 
 
 def main() -> None:
